@@ -1,3 +1,41 @@
+# PetaKit5DfromSLD
+
+Modified version of Petakit5D to read in .sld files, deconvolve and deskew, then reconstruct to a 5D tiff.
+
+Authors: David Corcoran, Laura Cooper, Scott Brooks and Yara Aghabi
+
+## Options
+
+Data should be in .sld format. There should only be LLSM files in there. Set the input folder to the folder containing the sld files and PSFs. 
+
+```inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\DeconPeta\';```
+
+PSFs
+Names of PSFs for each channel, they should be inside the input folder. These must be sample scan PSFs, cropped to only have one bead in them if possible.
+There must be as many beads as there are channels in the slidebook image.
+
+```PSF_C0 = '488_PSF.tif';```
+```PSF_C1 = '560_PSF.tif';```
+
+Z step size
+Change to step size of acquisition.
+
+```dz = 0.5;```
+
+Choose a deconvolution method. Either 'omw' or the standard matlab richardson lucy 'simplified'.
+
+```RLmethod = 'simplified';```
+
+Number of iterations for deconvolution. For omw use 2 iterations.
+
+```DeconIter = 20;```
+
+Wiener filter parameter for OMW deconvolution method alpha parameter should be adjusted based on SNR and data quality. Typically 0.002 - 0.01 for SNR ~20; 0.02 - 0.1 or higher for SNR ~7
+This will take some tuning.
+
+```wienerAlpha = 0.05;```
+
+
 # PetaKit5D
 
 Tools for efficient and scalable processing of petabyte-scale 5D live images or large specimen images from lattice light-sheet microscopy (LLSM) and other light sheet microscopies, as well as other imaging modalities. It is featured by fast image readers and writers (for Tiff and Zarr), combined image deskew/rotation, instantly converged Richardson-Lucy (RL) deconvolution, and scalable Zarr-based stitching. It also contains some other useful tools, including 3D point detection and point tracking (based on Aguet, Upadhyayula et al., 2016), cropping, resampling, max projection, PSF analysis and visualization, and more.

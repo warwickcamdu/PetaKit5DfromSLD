@@ -1,18 +1,17 @@
 # PetaKit5DfromSLD
 
-Modified version of Petakit5D to read in .sld files, deconvolve and deskew, then reconstruct to a 5D tiff.
+Modified version of PetaKit5D to read in the 3i Lattice Lightsheet Microscope Slidebook files (.sld), deconvolve and deskew using PetaKit5D, then reconstruct to a 5D tif. Requires installing PetaKit5D.
 
 Authors: David Corcoran, Laura Cooper, Scott Brooks and Yara Aghabi
 
 ## Options
 
-Data should be in .sld format. There should only be LLSM files in there. Set the input folder to the folder containing the sld files and PSFs. 
+All the .sld files to be processed should be placed in the same folder. Each .sld file can contain multiple series (otherwise known as captures). Set the input folder to the folder containing the .sld files. Don't use "C0" or "C1" in the .sld filenames or anywhere in the pathname, otherwise it'll break. The input folder path needs to end in a backwards slash.
 
 ```inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\DeconPeta\';```
 
 PSFs
-Names of PSFs for each channel, they should be inside the input folder. These must be sample scan PSFs, cropped to only have one bead in them if possible.
-There must be as many beads as there are channels in the slidebook image.
+Within the input folder you need to have a PSF file for each channel in .tif format (not .tiff). The PSFs must be imaged using "sample scan" and with the same Z-spacing as the images (e.g. 0.5um). The metadata needs to be correct for the XYZ pixel spacing and the units written as "um" not "microns" (e.g. 0.104 um for XY and 0.5 um for Z). The image must cropped to contain only one bead.
 
 ```PSF_C0 = '488_PSF.tif';```
 ```PSF_C1 = '560_PSF.tif';```
@@ -26,12 +25,11 @@ Choose a deconvolution method. Either 'omw' or the standard matlab richardson lu
 
 ```RLmethod = 'simplified';```
 
-Number of iterations for deconvolution. For omw use 2 iterations.
+Number of iterations for deconvolution. For omw use 2 iterations. All files and channels will be deconvolved with the same number of iterations.
 
 ```DeconIter = 20;```
 
-Wiener filter parameter for OMW deconvolution method alpha parameter should be adjusted based on SNR and data quality. Typically 0.002 - 0.01 for SNR ~20; 0.02 - 0.1 or higher for SNR ~7
-This will take some tuning.
+Wiener filter parameter for OMW deconvolution method alpha parameter should be adjusted based on SNR and data quality. Typically 0.002 - 0.01 for SNR ~20; 0.02 - 0.1 or higher for SNR ~7. This will take some tuning.
 
 ```wienerAlpha = 0.05;```
 

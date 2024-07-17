@@ -16,6 +16,7 @@ Within the input folder you need to have a PSF file for each channel in .tif for
 ```PSF_C1 = '560_PSF.tif';```
 
 Z step size
+
 Change to step size of acquisition.
 
 ```dz = 0.5;```

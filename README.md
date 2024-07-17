@@ -10,7 +10,6 @@ All the .sld files to be processed should be placed in the same folder. Each .sl
 
 ```inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\DeconPeta\';```
 
-PSFs
 Within the input folder you need to have a PSF file for each channel in .tif format (not .tiff). The PSFs must be imaged using "sample scan" and with the same Z-spacing as the images (e.g. 0.5um). The metadata needs to be correct for the XYZ pixel spacing and the units written as "um" not "microns" (e.g. 0.104 um for XY and 0.5 um for Z). The image must cropped to contain only one bead.
 
 ```PSF_C0 = '488_PSF.tif';```

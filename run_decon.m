@@ -3,13 +3,10 @@
 % Petakit5d doesn't accept .sld files so firstly the sld files are converted to .tif. 
 
 % Requires installing PetaKit5D (not the GUI version) and adding it to the matlab path 
-% Installation instructions with the required matlab toolboxes are on their github:
-% https://github.com/abcucberkeley/PetaKit5D
 
 % Requires a modified Matlab bioformats toolbox to read in .sld files and
 % adding it to the Matlab path.
 % Possibly requires removing the bioformats that's included with petakit5d?
-% This will be available somewhere like the CAMDU github
 
 % Requires a PSF for each channel in .tif format (not .tiff).
 % All the .sld files in that folder will be processed with the same PSF.
@@ -18,24 +15,19 @@
 % Don't use "C0" or "C1" in the .sld filenames or anywhere in the pathname,
 % otherwise it'll break. Folder path needs to end in \
 
-
-%inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\to-be-deconvolvednext\';
-% inputFolder = 'E:\Scott\Software\petakit5d\test-data\Series0-1_T0-1_twochannels\';
 inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\DeconPeta\';
-% inputFolder = 'E:\Scott\Software\petakit5d\test-data\T0-2_twochannels\';
+
 % Name of the PSF files.
 % Must be .tif format and placed in the same folder as the .sld files.
 % The PSF must have the same slice spacing as the image (e.g. 0.5um). 
-% The metadata probably needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
+% The metadata needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
 PSF_C0 = '488_PSF.tif';
 PSF_C1 = '640_PSF.tif';
 
 % z step size
 dz = 0.5;
 
-%disable MIPS after decon, only want them after deskew
-% can we output to a different directory to the tifs?
-% can we delete the intermediate tifs?
+% disable MIPS after decon, only want them after deskew?
 
 % For 2024a it now uses the GPU, had to update graphics driver for matlab
 % to recognise GPU, this takes a lot of pressure off of the 
@@ -53,7 +45,7 @@ DeconIter = 20;
 % typically 0.002 - 0.01 for SNR ~20; 0.02 - 0.1 or higher for SNR ~7
 wienerAlpha = 0.05;
 
-% Delete the raw .tif (i.e. the ones that aren't deconvolved or deskewed
+% Delete the raw .tif (i.e. the ones that aren't deconvolved or deskewed)
 deleteRawTif = false; 
 % Delete the .tif files that are deconvolved but not deskewed
 deleteDeconTif = false;

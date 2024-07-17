@@ -387,28 +387,6 @@ for k = 1:nFiles
 
 end
 
-
-
-
-% This was not clear, may need to be added just before the deconvolution
-% step
-% % move to the PetaKit5D root directory
-% curPath = pwd;
-% if ~endsWith(curPath, 'PetaKit5D')
-%     mfilePath = mfilename('fullpath');
-%     if contains(mfilePath,'LiveEditorEvaluationHelper')
-%         mfilePath = matlab.desktop.editor.getActiveFilename;
-%     end
-% 
-%     mPath = fileparts(mfilePath);
-%     if endsWith(mPath, 'demos')
-%         cd(mPath);
-%         cd('..')
-%     end
-% end
-
-
-
 %% Step 4: delete intermediate .tif files
  
 % deletes the raw tifs if the flag is true

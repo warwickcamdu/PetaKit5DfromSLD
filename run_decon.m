@@ -394,8 +394,10 @@ for k = 1:nFiles
         inputToMerge = [dataPath_exps '\' 'DS'];
         paraMergeTiffFilesToMultiDimStack(inputToMerge, outputTiffFile,pixelSizeX, deskewedZSpacing, frameInterval);
         
-        % outputTiffFileMax = currentSeriesPath + "_MAX.tif";
-        % inputToMergeMax = [inputToMerge '\' 'MIPs'];
+        
+        outputTiffFileMax = currentSeriesPath + "_MAX.tif";
+        inputToMergeMax = [inputToMerge '\' 'MIPs'];
+        paraMergeMaxToStack(inputToMergeMax, outputTiffFileMax,pixelSizeX, frameInterval);
         
     end
 

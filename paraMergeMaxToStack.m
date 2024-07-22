@@ -71,8 +71,8 @@ function finalStack=  paraMergeMaxToStack(inputFolder, outputFilePath, xySpacing
         if isempty(tokens)
             error('Filename format does not match the expected pattern.');
         end
-        timePoint = str2double(tokens{1}{1})
-        channel = str2double(tokens{1}{2})
+        timePoint = str2double(tokens{1}{1});
+        channel = str2double(tokens{1}{2});
         
         % Read the image
         % image = readtiff_parallel(fullFileName);
@@ -80,13 +80,13 @@ function finalStack=  paraMergeMaxToStack(inputFolder, outputFilePath, xySpacing
         % Populate the final stack
         finalStack(:, :, channel + 1, timePoint + 1) = readtiff_parallel(fullFileName);
     end
-    size(finalStack)
+    size(finalStack);
     
     tic;
 
 
 
-    sizeData = size(finalStack)
+    sizeData = [stackSizeY, stackSizeX, numChannels, numTimePoints];
     t = Tiff(outputFilePath, 'w8'); % Use 'w8' for BigTIFF
     
     % Set up the tags for the TIFF file

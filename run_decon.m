@@ -3,10 +3,13 @@
 % Petakit5d doesn't accept .sld files so firstly the sld files are converted to .tif. 
 
 % Requires installing PetaKit5D (not the GUI version) and adding it to the matlab path 
+% Installation instructions with the required matlab toolboxes are on their github:
+% https://github.com/abcucberkeley/PetaKit5D
 
 % Requires a modified Matlab bioformats toolbox to read in .sld files and
 % adding it to the Matlab path.
 % Possibly requires removing the bioformats that's included with petakit5d?
+% This will be available somewhere like the CAMDU github
 
 % Requires a PSF for each channel in .tif format (not .tiff).
 % All the .sld files in that folder will be processed with the same PSF.
@@ -15,19 +18,28 @@
 % Don't use "C0" or "C1" in the .sld filenames or anywhere in the pathname,
 % otherwise it'll break. Folder path needs to end in \
 
-inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\DeconPeta\';
+% TODO: Make it so that if its 2D it skips the series
 
+%inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\to-be-deconvolvednext\';
+% inputFolder = 'E:\Scott\Software\petakit5d\test-data\Series0-1_T0-1_twochannels\';
+inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\paper\';
+inputFolder = 'Z:\Shared243\sbrooks\petakittesting\single_timepoint\';
+% inputFolder = 'E:\Scott\Software\petakit5d\test-data\T0-2_twochannels\';
 % Name of the PSF files.
 % Must be .tif format and placed in the same folder as the .sld files.
 % The PSF must have the same slice spacing as the image (e.g. 0.5um). 
-% The metadata needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
+% The metadata probably needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
 PSF_C0 = '488_PSF.tif';
 PSF_C1 = '640_PSF.tif';
+PSF_C0 = 'PSF_488.tif';
+PSF_C1 = 'PSF_640.tif';
 
 % z step size
 dz = 0.5;
 
-% disable MIPS after decon, only want them after deskew?
+%disable MIPS after decon, only want them after deskew
+% can we output to a different directory to the tifs?
+% can we delete the intermediate tifs?
 
 % For 2024a it now uses the GPU, had to update graphics driver for matlab
 % to recognise GPU, this takes a lot of pressure off of the 
@@ -39,13 +51,13 @@ dz = 0.5;
 % Choose a deconvolution method. Either 'omw' or the standard matlab richardson lucy 'simplified'. 
 RLmethod = 'simplified';
 % number of iterations for deconvolution. For omw use 2 iterations.
-DeconIter = 20;
+DeconIter = 15;
 % Wiener filter parameter for OMW deconvolution method
 % alpha parameter should be adjusted based on SNR and data quality.
 % typically 0.002 - 0.01 for SNR ~20; 0.02 - 0.1 or higher for SNR ~7
 wienerAlpha = 0.05;
 
-% Delete the raw .tif (i.e. the ones that aren't deconvolved or deskewed)
+% Delete the raw .tif (i.e. the ones that aren't deconvolved or deskewed
 deleteRawTif = false; 
 % Delete the .tif files that are deconvolved but not deskewed
 deleteDeconTif = false;
@@ -189,20 +201,20 @@ for k = 1:nFiles
         %get metadata and extract important features
         % check X and Y are correct and not switched
         omeMeta = r.getMetadataStore();
-        stackSizeX = omeMeta.getPixelsSizeX(0).getValue();      %image width in pixels
-        stackSizeY = omeMeta.getPixelsSizeY(0).getValue();     %image height in pixels
-        stackSizeZ = omeMeta.getPixelsSizeZ(0).getValue();      %number of slices
-        stackSizeC = omeMeta.getPixelsSizeC(0).getValue();      %number of channels
-        stackSizeT = omeMeta.getPixelsSizeT(0).getValue();      %number of time points
+        stackSizeX = omeMeta.getPixelsSizeX(S).getValue();      %image width in pixels
+        stackSizeY = omeMeta.getPixelsSizeY(S).getValue();     %image height in pixels
+        stackSizeZ = omeMeta.getPixelsSizeZ(S).getValue();      %number of slices
+        stackSizeC = omeMeta.getPixelsSizeC(S).getValue();      %number of channels
+        stackSizeT = omeMeta.getPixelsSizeT(S).getValue();      %number of time points
         % Extract physical pixel size (XY spacing)
-        pixelSizeX = omeMeta.getPixelsPhysicalSizeX(0); % in micrometers
+        pixelSizeX = omeMeta.getPixelsPhysicalSizeX(S); % in micrometers
         if ~isempty(pixelSizeX)
             pixelSizeX = double(pixelSizeX.value());  
         else
             pixelSizeX = NaN;
         end
 
-        pixelSizeY = omeMeta.getPixelsPhysicalSizeY(0); % in micrometers
+        pixelSizeY = omeMeta.getPixelsPhysicalSizeY(S); % in micrometers
         if ~isempty(pixelSizeY)
             pixelSizeY = double(pixelSizeY.value());
         else
@@ -210,7 +222,7 @@ for k = 1:nFiles
         end
 
         % Extract Z spacing
-        pixelSizeZ = omeMeta.getPixelsPhysicalSizeZ(0); % in micrometers
+        pixelSizeZ = omeMeta.getPixelsPhysicalSizeZ(S); % in micrometers
         if ~isempty(pixelSizeZ)
             pixelSizeZ = double(pixelSizeZ.value());
         else
@@ -292,10 +304,10 @@ for k = 1:nFiles
                         plane_count = plane_count+1;
 
                         % this should be first of second timepoint
-                        if plane_count == int32(stackSizeZ*stackSizeC)
-
+                        if plane_count == int32(stackSizeZ*stackSizeC)+1
+                            plane_count
                             frameInterval = omeMeta.getPlaneDeltaT(S, plane_count).value().doubleValue()/1000; % in seconds
-                            firstframeInterval = omeMeta.getPlaneDeltaT(0, 0).value().doubleValue()/1000; % in seconds
+                            firstframeInterval = omeMeta.getPlaneDeltaT(S, 0).value().doubleValue()/1000; % in seconds
                             frameInterval =  frameInterval - firstframeInterval;
                         end
 
@@ -382,10 +394,34 @@ for k = 1:nFiles
         inputToMerge = [dataPath_exps '\' 'DS'];
         paraMergeTiffFilesToMultiDimStack(inputToMerge, outputTiffFile,pixelSizeX, deskewedZSpacing, frameInterval);
         
+        % outputTiffFileMax = currentSeriesPath + "_MAX.tif";
+        % inputToMergeMax = [inputToMerge '\' 'MIPs'];
         
     end
 
 end
+
+
+
+
+% This was not clear, may need to be added just before the deconvolution
+% step
+% % move to the PetaKit5D root directory
+% curPath = pwd;
+% if ~endsWith(curPath, 'PetaKit5D')
+%     mfilePath = mfilename('fullpath');
+%     if contains(mfilePath,'LiveEditorEvaluationHelper')
+%         mfilePath = matlab.desktop.editor.getActiveFilename;
+%     end
+% 
+%     mPath = fileparts(mfilePath);
+%     if endsWith(mPath, 'demos')
+%         cd(mPath);
+%         cd('..')
+%     end
+% end
+
+
 
 %% Step 4: delete intermediate .tif files
  

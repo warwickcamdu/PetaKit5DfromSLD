@@ -2,7 +2,7 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
     % addpath('E:\Scott\Software\Fiji.app\scripts')
     % ImageJ;
     % Ensure the output file path is a string
-
+    % TODO test with 1 channel 1 timepoint
     if ~ischar(outputFilePath)
         outputFilePath = char(outputFilePath);
     end
@@ -60,6 +60,7 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
     % Initialize the final stack
     fprintf('Initializing the final stack...\n');
     finalStack = zeros(stackSizeY, stackSizeX, stackSizeZ, numChannels, numTimePoints, 'uint16');
+    numTimePoints
 
     
     fprintf('Reading images and populating the stack using parallel processing...\n');
@@ -116,6 +117,7 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
 
 
     sizeData = size(finalStack)
+    sizeData = [stackSizeY, stackSizeX, stackSizeZ, numChannels, numTimePoints]
     t = Tiff(outputFilePath, 'w8'); % Use 'w8' for BigTIFF
     
     % Set up the tags for the TIFF file

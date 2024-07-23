@@ -22,17 +22,18 @@
 
 %inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\to-be-deconvolvednext\';
 % inputFolder = 'E:\Scott\Software\petakit5d\test-data\Series0-1_T0-1_twochannels\';
-inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\paper\';
-inputFolder = 'Z:\Shared243\sbrooks\petakittesting\single_timepoint\';
+inputFolder = 'Z:\Shared243\npucekova\2024-07-11\decon2\';
+
+% inputFolder = 'Z:\Shared243\sbrooks\petakittesting\single_timepoint\';
 % inputFolder = 'E:\Scott\Software\petakit5d\test-data\T0-2_twochannels\';
 % Name of the PSF files.
 % Must be .tif format and placed in the same folder as the .sld files.
 % The PSF must have the same slice spacing as the image (e.g. 0.5um). 
 % The metadata probably needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
 PSF_C0 = '488_PSF.tif';
-PSF_C1 = '640_PSF.tif';
-PSF_C0 = 'PSF_488.tif';
-PSF_C1 = 'PSF_640.tif';
+PSF_C1 = '560_PSF.tif';
+% PSF_C0 = 'PSF_488.tif';
+% PSF_C1 = 'PSF_640.tif';
 
 % z step size
 dz = 0.5;
@@ -51,7 +52,7 @@ dz = 0.5;
 % Choose a deconvolution method. Either 'omw' or the standard matlab richardson lucy 'simplified'. 
 RLmethod = 'simplified';
 % number of iterations for deconvolution. For omw use 2 iterations.
-DeconIter = 15;
+DeconIter = 10;
 % Wiener filter parameter for OMW deconvolution method
 % alpha parameter should be adjusted based on SNR and data quality.
 % typically 0.002 - 0.01 for SNR ~20; 0.02 - 0.1 or higher for SNR ~7
@@ -84,7 +85,7 @@ parseSettingFile = false;
 
 % channel patterns for the channels, the channel patterns should map the
 % order of PSF filenames.
-ChannelPatterns = {'C0', 'C1', ...
+ChannelPatterns = {'Ch0', 'Ch1', ...
                    };  
 
 % psf path
@@ -243,7 +244,7 @@ for k = 1:nFiles
             PSFFullpaths = {
                 [psf_rt, PSF_C0], ...
                 };     
-            ChannelPatterns = {'C0', ...
+            ChannelPatterns = {'Ch0', ...
                    };  
         end 
 
@@ -326,7 +327,7 @@ for k = 1:nFiles
 
                     % Ensure all variables are character arrays
                     tifDir = char(tifDir);
-                    tifFullpath = [tifDir '\' strSld '_S' strS '_T' strT '_C' strC '.tif'];
+                    tifFullpath = [tifDir '\' strSld '_S' strS '_T' strT '_Ch' strC '.tif'];
 
                     %save the array as a tif
                     %I think this doesn't save metadata but that doesn't

@@ -36,7 +36,7 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
         
         
         % Extract time point and channel from the filename
-        tokens = regexp(baseFileName, '.*_T(\d+)_C(\d+).tif', 'tokens');
+        tokens = regexp(baseFileName, '.*_T(\d+)_Ch(\d+).tif', 'tokens');
         if isempty(tokens)
             error('Filename format does not match the expected pattern.');
         end
@@ -54,7 +54,7 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
     
     
     fprintf('Stack dimensions determined:\n');
-    fprintf('X: %d, YY: %d, Z: %d, C: %d, Timepoints: %d\n', ...
+    fprintf('X: %d, YY: %d, Z: %d, Ch: %d, Timepoints: %d\n', ...
         stackSizeX, stackSizeY, stackSizeZ, numChannels, numTimePoints);
     
     % Initialize the final stack
@@ -69,7 +69,7 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
         fullFileName = fullfile(inputFolder, baseFileName)
         
         % Extract time point and channel from the filename
-        tokens = regexp(baseFileName, '.*_T(\d+)_C(\d+).tif', 'tokens');
+        tokens = regexp(baseFileName, '.*_T(\d+)_Ch(\d+).tif', 'tokens');
         if isempty(tokens)
             error('Filename format does not match the expected pattern.');
         end

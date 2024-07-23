@@ -35,7 +35,7 @@ function finalStack=  paraMergeMaxToStack(inputFolder, outputFilePath, xySpacing
         
         
         % Extract time point and channel from the filename
-        tokens = regexp(baseFileName, '.*_T(\d+)_C(\d+).*.tif', 'tokens');
+        tokens = regexp(baseFileName, '.*_T(\d+)_Ch(\d+).*.tif', 'tokens');
         if isempty(tokens)
             error('Filename format does not match the expected pattern.');
         end
@@ -53,7 +53,7 @@ function finalStack=  paraMergeMaxToStack(inputFolder, outputFilePath, xySpacing
     
     
     fprintf('Stack dimensions determined:\n');
-    fprintf('X: %d, YY: %d, C: %d, Timepoints: %d\n', ...
+    fprintf('X: %d, YY: %d, Ch: %d, Timepoints: %d\n', ...
         stackSizeX, stackSizeY, numChannels, numTimePoints);
     
     % Initialize the final stack
@@ -67,7 +67,7 @@ function finalStack=  paraMergeMaxToStack(inputFolder, outputFilePath, xySpacing
         fullFileName = fullfile(inputFolder, baseFileName)
         
         % Extract time point and channel from the filename
-        tokens = regexp(baseFileName, '.*_T(\d+)_C(\d+).*.tif', 'tokens');
+        tokens = regexp(baseFileName, '.*_T(\d+)_Ch(\d+).*.tif', 'tokens');
         if isempty(tokens)
             error('Filename format does not match the expected pattern.');
         end

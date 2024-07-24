@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/829345148.svg)](https://zenodo.org/doi/10.5281/zenodo.12805990)
+
 # PetaKit5DfromSLD
 
 Modified version of PetaKit5D to read in the 3i Lattice Lightsheet Microscope Slidebook files (.sld), deconvolve and deskew using PetaKit5D, then reconstruct to a 5D tif. Requires installing PetaKit5D.

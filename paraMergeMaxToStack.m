@@ -1,8 +1,8 @@
-function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFilePath, xySpacing, zSpacing, frameInterval)
+function finalStack=  paraMergeMaxToStack(inputFolder, outputFilePath, xySpacing, frameInterval)
     % addpath('E:\Scott\Software\Fiji.app\scripts')
     % ImageJ;
     % Ensure the output file path is a string
-    % TODO test with 1 channel 1 timepoint
+
     if ~ischar(outputFilePath)
         outputFilePath = char(outputFilePath);
     end
@@ -29,14 +29,13 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
             imshape = size(image);
             stackSizeX = imshape(2);
             stackSizeY = imshape(1);
-            stackSizeZ = imshape(3);
 
             
         end
         
         
         % Extract time point and channel from the filename
-        tokens = regexp(baseFileName, '.*_T(\d+)_Ch(\d+).tif', 'tokens');
+        tokens = regexp(baseFileName, '.*_T(\d+)_Ch(\d+).*.tif', 'tokens');
         if isempty(tokens)
             error('Filename format does not match the expected pattern.');
         end
@@ -54,13 +53,12 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
     
     
     fprintf('Stack dimensions determined:\n');
-    fprintf('X: %d, YY: %d, Z: %d, Ch: %d, Timepoints: %d\n', ...
-        stackSizeX, stackSizeY, stackSizeZ, numChannels, numTimePoints);
+    fprintf('X: %d, YY: %d, Ch: %d, Timepoints: %d\n', ...
+        stackSizeX, stackSizeY, numChannels, numTimePoints);
     
     % Initialize the final stack
     fprintf('Initializing the final stack...\n');
-    finalStack = zeros(stackSizeY, stackSizeX, stackSizeZ, numChannels, numTimePoints, 'uint16');
-    numTimePoints
+    finalStack = zeros(stackSizeY, stackSizeX, numChannels, numTimePoints, 'uint16');
 
     
     fprintf('Reading images and populating the stack using parallel processing...\n');
@@ -69,55 +67,26 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
         fullFileName = fullfile(inputFolder, baseFileName)
         
         % Extract time point and channel from the filename
-        tokens = regexp(baseFileName, '.*_T(\d+)_Ch(\d+).tif', 'tokens');
+        tokens = regexp(baseFileName, '.*_T(\d+)_Ch(\d+).*.tif', 'tokens');
         if isempty(tokens)
             error('Filename format does not match the expected pattern.');
         end
-        timePoint = str2double(tokens{1}{1})
-        channel = str2double(tokens{1}{2})
+        timePoint = str2double(tokens{1}{1});
+        channel = str2double(tokens{1}{2});
         
         % Read the image
         % image = readtiff_parallel(fullFileName);
         
         % Populate the final stack
-        finalStack(:, :, :, channel + 1, timePoint + 1) = readtiff_parallel(fullFileName);
+        finalStack(:, :, channel + 1, timePoint + 1) = readtiff_parallel(fullFileName);
     end
-    size(finalStack)
-    % Extract the slice
-    % slice = finalStack(:, :, 45, 2, 1);
-    % 
-    % % Normalize the slice
-    % sliceNormalized = mat2gray(slice);
-    % 
-    % % Display the normalized slice
-    % imshow(sliceNormalized);
-    % title('Normalized Slice');
-
+    size(finalStack);
     
-    
-    % Verify metadata
-    % zSpacing = 0.271; 
-    % frameInterval = 4;
-    % xySpacing = 0.104;
-
-    
-    
-    
-    % % Save the final stack as an OME-TIFF using Bio-Formats
-    % fprintf('Saving the final stack...\n');
-    % tic;
-    % bfsave(finalStack, outputFilePath);
-    % elapsedTime = toc;
-    % fprintf('5D stack saved successfully with pixel spacing and frame interval in %.2f seconds.\n', elapsedTime);
-    % IJ.saveAsTiff(finalStack, outputFilePath);
-
-    % Assuming yourData is your 5D stack in YXZCT order
     tic;
 
 
 
-    sizeData = size(finalStack)
-    sizeData = [stackSizeY, stackSizeX, stackSizeZ, numChannels, numTimePoints]
+    sizeData = [stackSizeY, stackSizeX, numChannels, numTimePoints];
     t = Tiff(outputFilePath, 'w8'); % Use 'w8' for BigTIFF
     
     % Set up the tags for the TIFF file
@@ -132,25 +101,24 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
     tagstruct.ResolutionUnit = Tiff.ResolutionUnit.Centimeter; % Use centimeters as the unit
     tagstruct.XResolution = 10000 / xySpacing; % Convert micrometers to resolution (cm)
     tagstruct.YResolution = 10000 / xySpacing; % Convert micrometers to resolution (cm)
-    tagstruct.ImageDescription = sprintf(['ImageJ=1.52p\nimages=%d\nchannels=%d\nslices=%d\nframes=%d\n' ...
-                                      'hyperstack=true\nmode=grayscale\nloop=false\nspacing=%f\n' ...
-                                      'unit=micron\nfinterval=%f\n'], ...
-                                      sizeData(3) * sizeData(4) * sizeData(5), sizeData(4), sizeData(3), sizeData(5), zSpacing, frameInterval);
+    tagstruct.ImageDescription = sprintf(['ImageJ=1.52p\nimages=%d\nchannels=%d\nframes=%d\n' ...
+                                      'hyperstack=true\nmode=grayscale\nloop=false\nfinterval=%f\n'], ...
+                                      sizeData(3) * sizeData(4), sizeData(3), sizeData(4), frameInterval);
 
     % Write each slice
     
-    for tIndex = 1:sizeData(5)
+    for tIndex = 1:sizeData(4)
         
-        for zIndex = 1:sizeData(3)
-            for cIndex = 1:sizeData(4)
-                % Set metadata for the current slice
+        
+        for cIndex = 1:sizeData(3)
+            % Set metadata for the current slice
 
-                t.setTag(tagstruct);
-                t.write(finalStack(:, :, zIndex, cIndex, tIndex));
-                t.writeDirectory();
-            end
-            
+            t.setTag(tagstruct);
+            t.write(finalStack(:, :, cIndex, tIndex));
+            t.writeDirectory();
         end
+            
+        
     end
     
     t.close();

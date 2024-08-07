@@ -18,17 +18,30 @@
 % Don't use "C0" or "C1" in the .sld filenames or anywhere in the pathname,
 % otherwise it'll break. Folder path needs to end in \
 
+% TODO: Make it so that if its 2D it skips the series
 
 %inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\to-be-deconvolvednext\';
 % inputFolder = 'E:\Scott\Software\petakit5d\test-data\Series0-1_T0-1_twochannels\';
-inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\DeconPeta\';
+inputFolder = 'Z:\Shared243\npucekova\2024-07-11\decon\';
+
+% inputFolder = 'Z:\Shared243\sbrooks\petakittesting\single_timepoint\';
 % inputFolder = 'E:\Scott\Software\petakit5d\test-data\T0-2_twochannels\';
 % Name of the PSF files.
 % Must be .tif format and placed in the same folder as the .sld files.
 % The PSF must have the same slice spacing as the image (e.g. 0.5um). 
 % The metadata probably needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
 PSF_C0 = '488_PSF.tif';
-PSF_C1 = '640_PSF.tif';
+PSF_C1 = '560_PSF.tif';
+
+% PSF_C0 = 'PSF_488.tif';
+% PSF_C1 = 'PSF_640.tif';
+
+if ~isfile([inputFolder PSF_C0])
+    error('File does not exist: %s', PSF_C0);
+end
+if ~isfile([inputFolder PSF_C1])
+    error('File does not exist: %s', PSF_C1);
+end
 
 % z step size
 dz = 0.5;
@@ -47,7 +60,7 @@ dz = 0.5;
 % Choose a deconvolution method. Either 'omw' or the standard matlab richardson lucy 'simplified'. 
 RLmethod = 'simplified';
 % number of iterations for deconvolution. For omw use 2 iterations.
-DeconIter = 20;
+DeconIter = 10;
 % Wiener filter parameter for OMW deconvolution method
 % alpha parameter should be adjusted based on SNR and data quality.
 % typically 0.002 - 0.01 for SNR ~20; 0.02 - 0.1 or higher for SNR ~7
@@ -80,7 +93,7 @@ parseSettingFile = false;
 
 % channel patterns for the channels, the channel patterns should map the
 % order of PSF filenames.
-ChannelPatterns = {'C0', 'C1', ...
+ChannelPatterns = {'Ch0', 'Ch1', ...
                    };  
 
 % psf path
@@ -197,20 +210,20 @@ for k = 1:nFiles
         %get metadata and extract important features
         % check X and Y are correct and not switched
         omeMeta = r.getMetadataStore();
-        stackSizeX = omeMeta.getPixelsSizeX(0).getValue();      %image width in pixels
-        stackSizeY = omeMeta.getPixelsSizeY(0).getValue();     %image height in pixels
-        stackSizeZ = omeMeta.getPixelsSizeZ(0).getValue();      %number of slices
-        stackSizeC = omeMeta.getPixelsSizeC(0).getValue();      %number of channels
-        stackSizeT = omeMeta.getPixelsSizeT(0).getValue();      %number of time points
+        stackSizeX = omeMeta.getPixelsSizeX(S).getValue();      %image width in pixels
+        stackSizeY = omeMeta.getPixelsSizeY(S).getValue();     %image height in pixels
+        stackSizeZ = omeMeta.getPixelsSizeZ(S).getValue();      %number of slices
+        stackSizeC = omeMeta.getPixelsSizeC(S).getValue();      %number of channels
+        stackSizeT = omeMeta.getPixelsSizeT(S).getValue();      %number of time points
         % Extract physical pixel size (XY spacing)
-        pixelSizeX = omeMeta.getPixelsPhysicalSizeX(0); % in micrometers
+        pixelSizeX = omeMeta.getPixelsPhysicalSizeX(S); % in micrometers
         if ~isempty(pixelSizeX)
             pixelSizeX = double(pixelSizeX.value());  
         else
             pixelSizeX = NaN;
         end
 
-        pixelSizeY = omeMeta.getPixelsPhysicalSizeY(0); % in micrometers
+        pixelSizeY = omeMeta.getPixelsPhysicalSizeY(S); % in micrometers
         if ~isempty(pixelSizeY)
             pixelSizeY = double(pixelSizeY.value());
         else
@@ -218,7 +231,7 @@ for k = 1:nFiles
         end
 
         % Extract Z spacing
-        pixelSizeZ = omeMeta.getPixelsPhysicalSizeZ(0); % in micrometers
+        pixelSizeZ = omeMeta.getPixelsPhysicalSizeZ(S); % in micrometers
         if ~isempty(pixelSizeZ)
             pixelSizeZ = double(pixelSizeZ.value());
         else
@@ -239,7 +252,7 @@ for k = 1:nFiles
             PSFFullpaths = {
                 [psf_rt, PSF_C0], ...
                 };     
-            ChannelPatterns = {'C0', ...
+            ChannelPatterns = {'Ch0', ...
                    };  
         end 
 
@@ -300,10 +313,10 @@ for k = 1:nFiles
                         plane_count = plane_count+1;
 
                         % this should be first of second timepoint
-                        if plane_count == int32(stackSizeZ*stackSizeC)
-
+                        if plane_count == int32(stackSizeZ*stackSizeC)+1
+                            plane_count
                             frameInterval = omeMeta.getPlaneDeltaT(S, plane_count).value().doubleValue()/1000; % in seconds
-                            firstframeInterval = omeMeta.getPlaneDeltaT(0, 0).value().doubleValue()/1000; % in seconds
+                            firstframeInterval = omeMeta.getPlaneDeltaT(S, 0).value().doubleValue()/1000; % in seconds
                             frameInterval =  frameInterval - firstframeInterval;
                         end
 
@@ -322,7 +335,7 @@ for k = 1:nFiles
 
                     % Ensure all variables are character arrays
                     tifDir = char(tifDir);
-                    tifFullpath = [tifDir '\' strSld '_S' strS '_T' strT '_C' strC '.tif'];
+                    tifFullpath = [tifDir '\' strSld '_S' strS '_T' strT '_Ch' strC '.tif'];
 
                     %save the array as a tif
                     %I think this doesn't save metadata but that doesn't
@@ -390,6 +403,10 @@ for k = 1:nFiles
         inputToMerge = [dataPath_exps '\' 'DS'];
         paraMergeTiffFilesToMultiDimStack(inputToMerge, outputTiffFile,pixelSizeX, deskewedZSpacing, frameInterval);
         
+        
+        outputTiffFileMax = currentSeriesPath + "_MAX.tif";
+        inputToMergeMax = [inputToMerge '\' 'MIPs'];
+        paraMergeMaxToStack(inputToMergeMax, outputTiffFileMax,pixelSizeX, frameInterval);
         
     end
 

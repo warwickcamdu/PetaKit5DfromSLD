@@ -22,7 +22,7 @@
 
 %inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\to-be-deconvolvednext\';
 % inputFolder = 'E:\Scott\Software\petakit5d\test-data\Series0-1_T0-1_twochannels\';
-inputFolder = 'Z:\Shared243\npucekova\2024-07-11\decon\';
+inputFolder = 'Z:\Shared243\sbrooks\petabugtest\';
 
 % inputFolder = 'Z:\Shared243\sbrooks\petakittesting\single_timepoint\';
 % inputFolder = 'E:\Scott\Software\petakit5d\test-data\T0-2_twochannels\';
@@ -30,8 +30,8 @@ inputFolder = 'Z:\Shared243\npucekova\2024-07-11\decon\';
 % Must be .tif format and placed in the same folder as the .sld files.
 % The PSF must have the same slice spacing as the image (e.g. 0.5um). 
 % The metadata probably needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
-PSF_C0 = '488_PSF.tif';
-PSF_C1 = '560_PSF.tif';
+PSF_C0 = 'PSF_488.tif';
+PSF_C1 = 'PSF_560.tif';
 
 % PSF_C0 = 'PSF_488.tif';
 % PSF_C1 = 'PSF_640.tif';
@@ -398,9 +398,13 @@ for k = 1:nFiles
             masterCompute=masterCompute, configFile=configFile, mccMode=mccMode);
         
         %outputTiffFile = currentSeriesFolder + ".tif";
+        currentSeriesPath
+
         outputTiffFile = currentSeriesPath + ".tif";
         outputTiffPath = fullfile(inputFolder, outputTiffFile);
+        outputTiffPath
         inputToMerge = [dataPath_exps '\' 'DS'];
+        
         paraMergeTiffFilesToMultiDimStack(inputToMerge, outputTiffFile,pixelSizeX, deskewedZSpacing, frameInterval);
         
         

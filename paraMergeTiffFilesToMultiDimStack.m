@@ -49,8 +49,8 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
     end
     
     % Determine the size and shape of the stack
-    numTimePoints = max(timePoints) + 1
-    numChannels = max(channels) + 1
+    numTimePoints = max(timePoints) + 1;
+    numChannels = max(channels) + 1;
     
     
     fprintf('Stack dimensions determined:\n');
@@ -60,21 +60,21 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
     % Initialize the final stack
     fprintf('Initializing the final stack...\n');
     finalStack = zeros(stackSizeY, stackSizeX, stackSizeZ, numChannels, numTimePoints, 'uint16');
-    numTimePoints
+    numTimePoints;
 
     
     fprintf('Reading images and populating the stack using parallel processing...\n');
     for k = 1:length(tiffFiles)
-        baseFileName = tiffFiles(k).name
-        fullFileName = fullfile(inputFolder, baseFileName)
+        baseFileName = tiffFiles(k).name;
+        fullFileName = fullfile(inputFolder, baseFileName);
         
         % Extract time point and channel from the filename
         tokens = regexp(baseFileName, '.*_T(\d+)_Ch(\d+).tif', 'tokens');
         if isempty(tokens)
             error('Filename format does not match the expected pattern.');
         end
-        timePoint = str2double(tokens{1}{1})
-        channel = str2double(tokens{1}{2})
+        timePoint = str2double(tokens{1}{1});
+        channel = str2double(tokens{1}{2});
         
         % Read the image
         % image = readtiff_parallel(fullFileName);
@@ -82,7 +82,6 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
         % Populate the final stack
         finalStack(:, :, :, channel + 1, timePoint + 1) = readtiff_parallel(fullFileName);
     end
-    size(finalStack)
     % Extract the slice
     % slice = finalStack(:, :, 45, 2, 1);
     % 
@@ -114,10 +113,7 @@ function finalStack=  paraMergeTiffFilesToMultiDimStack(inputFolder, outputFileP
     % Assuming yourData is your 5D stack in YXZCT order
     tic;
 
-
-
-    sizeData = size(finalStack)
-    sizeData = [stackSizeY, stackSizeX, stackSizeZ, numChannels, numTimePoints]
+    sizeData = [stackSizeY, stackSizeX, stackSizeZ, numChannels, numTimePoints];
     t = Tiff(outputFilePath, 'w8'); % Use 'w8' for BigTIFF
     
     % Set up the tags for the TIFF file

@@ -37,6 +37,8 @@ ip.addParameter('overwrite', false, @islogical);
 ip.addParameter('crop', false, @islogical);
 ip.addParameter('skewAngle', 32.45, @isscalar);
 ip.addParameter('reverse', false, @islogical);
+ip.addParameter('inputAxisOrder', 'yxz', @ischar);
+ip.addParameter('outputAxisOrder', 'yxz', @ischar);
 ip.addParameter('rotate', false, @islogical);
 ip.addParameter('inputBbox', [], @isnumeric); % bounding box apply to input
 ip.addParameter('flipZstack', false, @islogical);
@@ -73,6 +75,8 @@ skewAngle = pr.skewAngle;
 reverse = pr.reverse;
 objectiveScan = pr.objectiveScan;
 zStageScan = pr.zStageScan;
+inputAxisOrder = pr.inputAxisOrder;
+outputAxisOrder = pr.outputAxisOrder;
 inputBbox = pr.inputBbox;
 flipZstack = pr.flipZstack;
 FFCorrection = pr.FFCorrection;
@@ -160,23 +164,27 @@ if ~DSRCombined
 end
 
 if (~DSRCombined && (~exist(dsFullname, 'file') || ip.Results.overwrite)) || DSRCombined
+    t_read = tic;
     % frame = double(readtiff(framePath));
     if combinedFrame
         frame_cell = cell(numel(framePath), 1);
         for i = 1 : numel(framePath)
             frame_cell{i} = readtiff(framePath{i});
         end
-        frame = single(cat(3, frame_cell{:}));
+        frame = cat(3, frame_cell{:});
         clear frame_cell;
     else
         [~, ~, ext] = fileparts(framePath{1});
         switch ext
             case {'.tif', '.tiff'}
-                frame = single(readtiff(framePath{1}));
+                frame = readtiff(framePath{1});
             case {'.zarr'}
-                frame = single(readzarr(framePath{1}));
+                frame = readzarr(framePath{1});
         end                
     end
+    t_read = toc(t_read);
+    fprintf('Image read time: %0.6f s\n', t_read);
+
     if ~isempty(inputBbox)
         try 
             frame = crop3d_mex(frame, inputBbox);
@@ -185,11 +193,11 @@ if (~DSRCombined && (~exist(dsFullname, 'file') || ip.Results.overwrite)) || DSR
             frame = frame(inputBbox(1) : inputBbox(4), inputBbox(2) : inputBbox(5), inputBbox(3) : inputBbox(6));
         end
     end
-    
+
     if flipZstack
         frame = flip(frame, 3);
     end
-        
+
     % flat field correction
     if FFCorrection
         fprintf(['Flat-field correction for frame %s...\n', ...
@@ -205,16 +213,24 @@ if (~DSRCombined && (~exist(dsFullname, 'file') || ip.Results.overwrite)) || DSR
         BKIm = readtiff(backgroundImage);
         frame = XR_CameraBackgroundRemoval(frame, BKIm, 'constOffset', constOffset);
     end
+    
+    % add support for data with axis orders other than yxz
+    input_order_mat = axis_order_mapping(inputAxisOrder, 'yxz');
+    if ~issorted(input_order_mat, 'ascend')
+        frame = permute(frame, input_order_mat);
+    end
 
     if ~DSRCombined
         fprintf('Deskew frame %s...\n', framePath{1});
+        t_ds = tic;
         splitCompute = false;
         sz = size(frame);
         % 03/23/2021, for image with more than 1000 slices, directly split to blocks for the processing
         if sz(3) > 1000
             splitCompute = true;
-        end            
-        
+        end
+
+        frame = single(frame);
         if ~splitCompute
             try 
                 ds = deskewFrame3D(frame, skewAngle_1, dz, xyPixelSize, reverse, ...
@@ -228,7 +244,7 @@ if (~DSRCombined && (~exist(dsFullname, 'file') || ip.Results.overwrite)) || DSR
                 end
             end
         end
-        
+
         if splitCompute
             fprintf('Use image block method for deskew...\n');
             % only split in y-axis, it is not right when splitting from
@@ -251,25 +267,27 @@ if (~DSRCombined && (~exist(dsFullname, 'file') || ip.Results.overwrite)) || DSR
             clear frame bim;
             % ds = gather(bo);
             % rmdir(OutputLocation, 's');
-        end            
+        end
+        t_ds = toc(t_ds);
+        fprintf('Deskew processing time: %0.6f s\n', t_ds);
 
         % save MIP
         if saveMIP
             dsMIPPath = sprintf('%s/MIPs/', dsPath);
             if ~exist(dsMIPPath, 'dir')
                 mkdir(dsMIPPath);
-                if ~ispc                
+                if ~ispc
                     fileattrib(dsMIPPath, '+w', 'g');
                 end
             end
-            
+
             if splitCompute
                 bmip = apply(bo, @(bs) max(bs.Data, [], 3), 'blockSize', [bo.blockSize(1:2), bo.Size(3)], 'useParallel', false);
                 mip = gather(bmip);
             else
                 mip = max(ds, [], 3);
             end
-            if save16bit 
+            if save16bit
                 mip = uint16(mip);
             end
             if saveZarr
@@ -281,7 +299,12 @@ if (~DSRCombined && (~exist(dsFullname, 'file') || ip.Results.overwrite)) || DSR
             end
         end
 
-        dsTempname = sprintf('%s%s_%s.tif', dsPath, fsname, uuid);
+        t_write = tic;
+        if saveZarr
+            dsTempname = sprintf('%s%s_%s.zarr', dsPath, fsname, uuid);
+        else
+            dsTempname = sprintf('%s%s_%s.tif', dsPath, fsname, uuid);
+        end
         if save3DStack
             if splitCompute
                 if saveZarr
@@ -311,6 +334,8 @@ if (~DSRCombined && (~exist(dsFullname, 'file') || ip.Results.overwrite)) || DSR
             fclose(fopen(dsTempname, 'w'));
             movefile(dsTempname, dsFullname);            
         end
+        t_write = toc(t_write);
+        fprintf('Deskew result write time: %0.6f s\n', t_write);
     end
 end
 
@@ -324,20 +349,21 @@ if ip.Results.rotate || DSRCombined
             fileattrib(dsrPath, '+w', 'g');
         end
     end
-    
+
     if saveZarr
         dsrFullname = [dsrPath, fsname, '.zarr'];        
     else
         dsrFullname = [dsrPath, fsname, '.tif'];
     end
-    
+
     if ~isempty(resampleFactor)
         rs = resampleFactor(:)';
         % complete rs to 3d in case it is not
         resampleFactor = [ones(1, 4 - numel(rs)) * rs(1), rs(2:end)];    
     end
-            
+
     if (~saveZarr && ~exist(dsrFullname, 'file')) || (saveZarr && ~exist(dsrFullname, 'dir'))
+        t_dsr = tic;
         if ~DSRCombined
             fprintf('rotate frame %s...\n', framePath{1});
             if ~exist('ds', 'var')
@@ -363,9 +389,13 @@ if ip.Results.rotate || DSRCombined
                 % exact proportions of rotated box
                 outSize = round([ny, nx*cos(theta)+nz*zAniso*sin(abs(theta)), nz*zAniso*cos(theta)+nx*sin(abs(theta))]);
             end
-            
+
             dsr = rotateFrame3D(ds, skewAngle_1, zAniso, reverse, 'crop', true, ...
                 'resample', resampleFactor, 'objectiveScan', objectiveScan, 'outSize', outSize, 'Interp', interpMethod);
+
+            t_dsr = toc(t_dsr);
+            fprintf('Rotation processing time: %0.6f s\n', t_dsr);
+
             if nargout == 0
                 clear ds;
             end
@@ -378,22 +408,38 @@ if ip.Results.rotate || DSRCombined
                 
                 % resample data pre-DSR
                 % binning in z and resize in xy
-                frame = frame(:, :, round(pre_rs(3) / 2) : pre_rs(3) : end);                
-                frame = imresize(frame, round(size(frame, [1, 2]) ./ pre_rs(1 : 2)));
-                
-                % define new xyPixelSize, dz, resample after resample
-                xyPixelSize = xyPixelSize * pre_rs(1);
-                dz = dz * pre_rs(3);
-                resampleFactor = outPixelSize ./ min(outPixelSize);
+                if any(pre_rs ~= 1)
+                    frame = frame(:, :, round(pre_rs(3) / 2) : pre_rs(3) : end);
+                    frame = imresize(frame, round(size(frame, [1, 2]) ./ pre_rs(1 : 2)));
+
+                    % define new xyPixelSize, dz, resample after resample
+                    xyPixelSize = xyPixelSize * pre_rs(1);
+                    dz = dz * pre_rs(3);
+                    resampleFactor = outPixelSize ./ min(outPixelSize);
+                end
+            end
+            if ~save16bit && ~isa(frame, 'uint16')
+                frame = single(frame);
             end
 
-            fprintf('Deskew, rotate and resample for frame %s...\n', framePath{1});            
+            fprintf('Deskew, rotate and resample for frame %s...\n', framePath{1});
             dsr = deskewRotateFrame3D(frame, skewAngle_1, dz, xyPixelSize, ...
                 'reverse', reverse, 'crop', true, 'objectiveScan', objectiveScan, ...
-                'resampleFactor', resampleFactor, 'interpMethod', interpMethod, 'xStepThresh', xStepThresh);
+                'resampleFactor', resampleFactor, 'interpMethod', interpMethod, ...
+                'xStepThresh', xStepThresh, 'save16bit', save16bit);
+
+            t_dsr = toc(t_dsr);
+            fprintf('Combined deskew/rotation processing time: %0.6f s\n', t_dsr);
+
             clear frame;
         end
         
+        % add support for data with axis orders other than yxz
+        output_order_mat = axis_order_mapping(outputAxisOrder, 'yxz');
+        if ~issorted(output_order_mat, 'ascend')
+            dsr = permute(dsr, output_order_mat);
+        end
+
         % save MIP
         if saveMIP
             dsrMIPPath = sprintf('%s/MIPs/', dsrPath);
@@ -411,15 +457,16 @@ if ip.Results.rotate || DSRCombined
             if saveZarr
                 dsrMIPname = sprintf('%s%s_MIP_z.zarr', dsrMIPPath, fsname);
                 dsrMIPTmpname = sprintf('%s%s_MIP_z.zarr_%s', dsrMIPPath, fsname, uuid);
-                writezarr(mip, dsrMIPTmpname);                                
+                writezarr(mip, dsrMIPTmpname);
             else
                 dsrMIPname = sprintf('%s%s_MIP_z.tif', dsrMIPPath, fsname);
                 dsrMIPTmpname = sprintf('%s%s_MIP_z.tiff_%s', dsrMIPPath, fsname, uuid);
-                writetiff(mip, dsrMIPTmpname);                
+                writetiff(mip, dsrMIPTmpname);
             end
             movefile(dsrMIPTmpname, dsrMIPname);
         end
         
+        t_write = tic;
         if saveZarr
             dsrTempName = sprintf('%s%s_%s.zarr', dsrPath, fsname, uuid);
         else
@@ -431,7 +478,7 @@ if ip.Results.rotate || DSRCombined
             dsr = scaleContrast(dsr, iRange, [0 65535]);
         end
         
-        if ip.Results.save16bit
+        if save16bit
             dsr = uint16(dsr);
         else
             dsr = single(dsr);
@@ -448,6 +495,8 @@ if ip.Results.rotate || DSRCombined
             fclose(fopen(dsrTempName, 'w'));
             movefile(dsrTempName, dsrFullname);            
         end
+        t_write = toc(t_write);
+        fprintf('Deskew/rotation result write time: %0.6f s\n', t_write);
     end
 end
 

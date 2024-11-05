@@ -1,4 +1,4 @@
-function [vol] = deskewRotateFrame3D(vol, angle, dz, xyPixelSize, varargin)
+function [volout] = deskewRotateFrame3D(vol, angle, dz, xyPixelSize, varargin)
 % Applies a shear transform to convert raw light sheet microscopy data
 % into a volume with real-world coordinates. After deskew, rotate the view of
 % the volume, followed by resampling (optional). 
@@ -33,6 +33,7 @@ ip.addParameter('objectiveScan', false, @islogical);
 ip.addParameter('xStepThresh', 2.0, @isnumeric); % 2.344 for ds=0.3, 2.735 for ds=0.35
 ip.addParameter('resampleFactor', [], @isnumeric); % resample factor in xyz order. 
 ip.addParameter('gpuProcess', false, @islogical); % use gpu for the processing. 
+ip.addParameter('save16bit', false, @islogical); % direct output results as 16bit for mex functions
 ip.addParameter('interpMethod', 'linear', @(x) any(strcmpi(x, {'cubic', 'linear'})));
 ip.parse(vol, angle, dz, xyPixelSize, varargin{:});
 
@@ -43,10 +44,10 @@ objectiveScan = pr.objectiveScan;
 xStepThresh = pr.xStepThresh;
 resampleFactor = pr.resampleFactor;
 gpuProcess = pr.gpuProcess;
+save16bit = pr.save16bit;
 interpMethod = pr.interpMethod;
 
 [ny,nx,nz] = size(vol);
-
 
 theta = angle * pi/180;
 dx = cos(theta)*dz/xyPixelSize; % pixels shifted slice to slice in x
@@ -67,17 +68,29 @@ else
     outSize = round([ny, nx*cos(theta)+nz*zAniso*sin(abs(theta)), nz*zAniso*cos(theta)+nx*sin(abs(theta))]);
 end
 
+do_interp = ~objectiveScan && abs(dx) > xStepThresh;
+rs = resampleFactor;
+use_fast_method = ~(gpuProcess || (~isempty(rs) && any(rs ~= 1)) || ~strcmpi(interpMethod, 'linear'));
 %% skew space interpolation
-if ~objectiveScan && abs(dx) > xStepThresh
+if do_interp
     % skewed space interplation combined dsr
     fprintf('The step size is greater than the threshold, use skewed space interpolation for combined deskew rotate...\n');
     % for dx only slightly larger than xStepThresh, we interpolate to
-    % isotropic (approximate), so it is not oversampled a lot to save memory. 
+    % a step size lower than the threshold, and the ratio between dz /
+    % dzout ceils to the faction of 1/n with 10% to the threshold.
     if abs(dx) / xStepThresh < 1.5
-        dzout = xyPixelSize / sin(theta);
+        % dzout = xyPixelSize / sin(theta);
+        dzout_thresh = xyPixelSize * xStepThresh / cos(theta);
+        dzout = dz / (ceil((dz / dzout_thresh) / (1 / 1)) *(1 / 1));
+        counter = 1;
+        while dzout / dzout_thresh < 0.4
+            dzout = dz / (ceil((dz / dzout_thresh) / (1 / (counter + 1))) *(1 / (counter + 1)));
+            counter = counter + 1;
+        end
         % round it by the significant digits of dz
-        sf = 10^floor(log10(dz));
-        dzout = round(dzout / sf ) * sf;
+        % sf = 10^floor(log10(dz));
+        % dzout = round(dzout / sf ) * sf;
+        % dzout = dz / 2;
     else
         ndiv = ceil(abs(dx) / xStepThresh);
         dzout = dz / ndiv;
@@ -85,16 +98,23 @@ if ~objectiveScan && abs(dx) > xStepThresh
     int_stepsize = dzout / dz;
     fprintf('Input dz: %f , interpolated dz: %f\n', dz, dzout);
 
-    % add the mex version skewed space interpolation as default
-    try 
-        vol = skewed_space_interp_defined_stepsize_mex(vol, abs(dx), int_stepsize, Reverse);
-    catch ME
-        disp(ME);
-        vol = skewed_space_interp_defined_stepsize(vol, abs(dx), int_stepsize, 'Reverse', Reverse);
+    if ~use_fast_method
+        t0 = tic;
+        % add the mex version skewed space interpolation as default
+        try
+            vol_1 = skewed_space_interp_defined_stepsize_mex(vol, abs(dx), int_stepsize, Reverse, save16bit);
+        catch ME
+            disp(ME);
+            vol_1 = skewed_space_interp_defined_stepsize(vol, abs(dx), int_stepsize, 'Reverse', Reverse);
+        end
+        fprintf('Skewed space interpolation time: %f s\n', toc(t0));
+
+        % update parameters after interpolation
+        [ny,nx,nz] = size(vol_1);
+    else
+        nz = floor(round((nz - 1) / int_stepsize * 100000) / 100000) + 1;
     end
-    
-    % update parameters after interpolation
-    [ny,nx,nz] = size(vol);
+    dx_orig = dx;
     dz = dzout;
     dx = cos(theta)*dz/xyPixelSize; % pixels shifted slice to slice in x
 
@@ -103,6 +123,8 @@ if ~objectiveScan && abs(dx) > xStepThresh
     else
         zAniso = sin(abs(theta)) * dz / xyPixelSize;
     end
+else
+    vol_1 = vol;
 end
 
 %% deskew
@@ -155,7 +177,6 @@ T2 = [1 0 0 0
       (outSize([2 1 3])+1)/2 1];
 
 %% resampling after deskew and rotate
-rs = resampleFactor;
 if ~isempty(rs)
     RT1 = [1 0 0 0
            0 1 0 0
@@ -182,12 +203,56 @@ if ~isempty(bbox)
     RA = imref3d(bbox(4 : 6) - bbox(1 : 3) + 1, [bbox(2) - 0.5, bbox(5) + 0.5], [bbox(1) - 0.5, bbox(4) + 0.5], [bbox(3) - 0.5, bbox(6) + 0.5]);
 end
 if gpuProcess
-    vol = gpuArray(vol);
+    vol_1 = gpuArray(vol_1);
 end
 
-[vol] = imwarp(vol, affine3d(ds_S*(T1*S*R*T2)*(RT1*RS*RT2)), interpMethod, 'FillValues', 0, 'OutputView', RA);
+if ~use_fast_method
+    [volout] = imwarp(vol_1, affine3d(ds_S*(T1*S*R*T2)*(RT1*RS*RT2)), interpMethod, 'FillValues', 0, 'OutputView', RA);
+else
+    % convert the transformation matrix to backward and the form for c/c++
+    offset = zeros(4, 4);
+    offset(4, 1 : 3) = 1;
+    if ~objectiveScan && Reverse
+        ds_S(4, 1) = ds_S(4, 1) - dx;
+    end
+    tmat = eye(4) / (ds_S*((T1+offset)*S*R*(T2-offset))*(RT1*RS*RT2))';
+    tmat = tmat([2, 1, 3, 4], [2, 1, 3, 4]);
+
+    if ~isempty(bbox)
+        bbox_in = bbox;
+    else
+        bbox_in = [1, 1, 1, outSize];
+    end
+
+    if do_interp
+        try
+            volout = skewed_space_interp_volume_deskew_rotate_warp_mex(vol, abs(dx_orig), int_stepsize, Reverse, tmat, bbox_in, save16bit);
+        catch ME
+            disp(ME);
+            try
+                vol_1 = skewed_space_interp_defined_stepsize_mex(vol, abs(dx_orig), int_stepsize, Reverse, save16bit);
+            catch ME
+                disp(ME);
+                vol_1 = skewed_space_interp_defined_stepsize(vol, abs(dx_orig), int_stepsize, 'Reverse', Reverse);
+            end
+            try
+                volout = volume_deskew_rotate_warp_mex(vol_1, tmat, bbox_in, save16bit);
+            catch ME
+                disp(ME);
+                [volout] = imwarp(vol_1, affine3d(ds_S*(T1*S*R*T2)*(RT1*RS*RT2)), interpMethod, 'FillValues', 0, 'OutputView', RA);
+            end
+        end
+    else
+        try
+            volout = volume_deskew_rotate_warp_mex(vol_1, tmat, bbox_in, save16bit);
+        catch ME
+            disp(ME);
+            [volout] = imwarp(vol_1, affine3d(ds_S*(T1*S*R*T2)*(RT1*RS*RT2)), interpMethod, 'FillValues', 0, 'OutputView', RA);
+        end
+    end
+end
 if gpuProcess
-    vol = gather(vol);
+    volout = gather(volout);
 end
 
 end

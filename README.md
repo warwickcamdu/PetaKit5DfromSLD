@@ -38,6 +38,10 @@ Wiener filter parameter for OMW deconvolution method alpha parameter should be a
 
 Tools for efficient and scalable processing of petabyte-scale 5D live images or large specimen images from lattice light-sheet microscopy (LLSM) and other light sheet microscopies, as well as other imaging modalities. It is featured by fast image readers and writers (for Tiff and Zarr), combined image deskew/rotation, instantly converged Richardson-Lucy (RL) deconvolution, and scalable Zarr-based stitching. It also contains some other useful tools, including 3D point detection and point tracking (based on Aguet, Upadhyayula et al., 2016), cropping, resampling, max projection, PSF analysis and visualization, and more.
 
+## Hardware
+The software works best on a Slurm-based Linux computing cluster with multiple CPU and GPU nodes for scalable, large-scale processing. For CPU nodes, we recommend at least 16 GB of RAM per core. For GPU nodes, we currently only support NVIDIA GPUs and recommend at least 24 GB of VRAM per GPU.
+
+The software can also run on a single workstation for smaller-scale image processing tasks (up to ~1 TB, otherwise may take very long). We recommend at least 256 GB of RAM, although a smaller size may still work depending on data sizes and specific processing tasks. For relative large datasets that cause memory issues, we suggest converting the images to Zarr format and applying large-scale processing strategies.
 
 ## Usage
 
@@ -68,12 +72,11 @@ The main demos for the paper:
 
 
 ## Python wrappers
-We created Python wrappers for the main functions by calling MATLAB runtime in another repository: [PyPetaKit5D](https://github.com/abcucberkeley/PyPetaKit5D). The package of the Python wrappers can be installed using this command:
+We created Python wrappers for the main functions by calling MATLAB runtime in another repository: [PyPetaKit5D](https://github.com/abcucberkeley/PyPetaKit5D). This library is only available on Linux for now. The package of the Python wrappers can be installed using this command:
 ````
 pip install --no-binary :all: --no-cache-dir PyPetaKit5D
 ````
-The parameters for the Python wrappers are identical to those in MATLAB. The documentation of the parameters can refer to [major_functions_documentation.txt](https://github.com/abcucberkeley/PetaKit5D/blob/main/major_functions_documentation.txt) or the [GUI wiki page](https://github.com/abcucberkeley/PetaKit5D-GUI/wiki). 
-
+Please refer to the [example notebooks](https://github.com/abcucberkeley/PyPetaKit5D/blob/main/notebooks) for step-by-step usage examples using our demo datasets. The parameters for the Python wrappers are identical to those in MATLAB. The documentation of the parameters can refer to [major_functions_documentation.txt](https://github.com/abcucberkeley/PetaKit5D/blob/main/major_functions_documentation.txt) or the [GUI wiki page](https://github.com/abcucberkeley/PetaKit5D-GUI/wiki).
 
 ## GUI
 The software has an easy-to-use Graphical User Interface (GUI) without writing any code in another repository: [PetaKit5D-GUI](https://github.com/abcucberkeley/PetaKit5D-GUI). The GUI supports Windows, MacOS, and Linux (Ubuntu). For instructions on the installation and the usage of the PetaKit5D-GUI, visit the [GUI wiki page](https://github.com/abcucberkeley/PetaKit5D-GUI/wiki).
@@ -90,4 +93,4 @@ Based on these readers and writers, we also developed a Fiji Plugin for faster r
 ## Reference:
 Please cite our paper if you find the software useful for your research:
 
-`Ruan X., Mueller, M., Liu G., Görlitz F., Fu T., Milkie D., Lillvis, J.L., Kuhn, A., Herr, C.Y.A., Hercule, W., Nienhaus, M., Killilea, A.N., Betzig, E. and Upadhyayula S. (2024) Image processing tools for petabyte-scale light sheet microscopy data. bioRxiv. bioRxiv 2023.12.31.573734; doi: https://doi.org/10.1101/2023.12.31.573734`
+`Ruan, X., Mueller, M., Liu, G., Görlitz, F., Fu, T., Milkie, D.E., Lillvis, J.L., Kuhn, A., Chong, J.G., Hong, J.L., Herr, C.Y.A., Hercule, W., Nienhaus, M., Killilea, A.N., Betzig, E. and Upadhyayula, S. Image processing tools for petabyte-scale light sheet microscopy data. Nature Methods (2024). https://doi.org/10.1038/s41592-024-02475-4`

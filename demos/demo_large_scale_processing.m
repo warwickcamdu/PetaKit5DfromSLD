@@ -3,7 +3,13 @@
 % Note: Large-scale stitching with large tiles, large-scale deconvolution (inplace) 
 % and deskew/rotation only works for zarr input. Large-scale stitching with small
 % tiles, and large-scale deconvolution (inmemory option) works for tiff files 
-% that can fit to memory. 
+% that can fit to memory.
+%
+% The large-scale processing frameworks work for both slurm-based computing
+% cluster and single workstations. For single workstations, if there are
+% memory issue when processing relative large image, we recommend
+% converting the image to Zarr format, and using batch processing as
+% demonstrated in this demo.
 %
 % The parameters demonstrated here are usually a subset of those available 
 % for the functions, with the rest using default values. For a comprehensive 
@@ -67,7 +73,7 @@ demo_skewed_space_stitching
 % Cam A
 psfFn = [dataPath, 'PSF/560_c.tif'];
 % OTF thresholding parameter
-OTFCumThresh = 0.9;
+OTFCumThresh = 0.88;
 % true if the PSF is in skew space
 skewed = true;
 XR_visualize_OTF_mask_segmentation(psfFn, OTFCumThresh, skewed);
@@ -125,7 +131,7 @@ RLmethod = 'omw';
 % typically 0.002 - 0.01 for SNR ~20; 0.02 - 0.1 or higher for SNR ~7
 wienerAlpha = [0.05, 0.005];
 % OTF thresholding parameter
-OTFCumThresh = 0.9;
+OTFCumThresh = [0.88, 0.9];
 % true if the PSF is in skew space
 skewed = true;
 % deconvolution result path string (within dataPath)
@@ -187,9 +193,8 @@ XR_decon_data_wrapper(dataPaths, 'resultDirName', resultDirName, 'xyPixelSize', 
     'dz', dz, 'Reverse', Reverse, 'ChannelPatterns', ChannelPatterns, 'PSFFullpaths', PSFFullpaths, ...
     'dzPSF', dzPSF, 'parseSettingFile', parseSettingFile, 'RLmethod', RLmethod, ...
     'wienerAlpha', wienerAlpha, 'OTFCumThresh', OTFCumThresh, 'skewed', skewed, ...
-    'Background', Background, 'CPPdecon', false, 'CudaDecon', false, 'DeconIter', DeconIter, ...
-    'fixIter', fixIter, 'EdgeErosion', EdgeErosion, 'Save16bit', Save16bit, ...
-    'zarrFile', zarrFile, 'batchSize', batchSize, 'blockSize', blockSize, ...
+    'Background', Background, 'DeconIter', DeconIter, 'fixIter', fixIter, 'EdgeErosion', EdgeErosion, ...
+    'Save16bit', Save16bit, 'zarrFile', zarrFile, 'batchSize', batchSize, 'blockSize', blockSize, ...
     'parseCluster', parseCluster, 'largeFile', largeFile, 'largeMethod', largeMethod, ...
     'GPUJob', GPUJob, 'debug', debug, 'cpusPerTask', cpusPerTask, 'ConfigFile', ConfigFile, ...
     'GPUConfigFile', GPUConfigFile, 'mccMode', mccMode);

@@ -22,7 +22,7 @@
 
 %inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\to-be-deconvolvednext\';
 % inputFolder = 'E:\Scott\Software\petakit5d\test-data\Series0-1_T0-1_twochannels\';
-inputFolder = 'Z:\Shared243\npucekova\2024-07-11\decon\';
+inputFolder = 'E:\David\edge-artefacts\nina\raw\input\';
 
 % inputFolder = 'Z:\Shared243\sbrooks\petakittesting\single_timepoint\';
 % inputFolder = 'E:\Scott\Software\petakit5d\test-data\T0-2_twochannels\';
@@ -45,6 +45,18 @@ end
 
 % z step size
 dz = 0.5;
+
+% Options: 'none', 'zero', 'mirror', 'gaussian', 'fixed'
+z_edge_padding = 'gaussian'; % Set default or input value
+z_padding = 20; % Default value
+
+                    
+
+
+% Predefine parameters for Gaussian and fixed padding
+gaussian_mean = 102.27; % Mean for Gaussian sampling
+gaussian_std = 3.17; % Standard deviation for Gaussian sampling
+fixed_value = 100; % Value for fixed padding
 
 %disable MIPS after decon, only want them after deskew
 % can we output to a different directory to the tifs?
@@ -336,6 +348,46 @@ for k = 1:nFiles
                     % Ensure all variables are character arrays
                     tifDir = char(tifDir);
                     tifFullpath = [tifDir '\' strSld '_S' strS '_T' strT '_Ch' strC '.tif'];
+                    
+
+                    
+                    % Check the padding type and apply accordingly
+                    switch z_edge_padding
+                        case 'none'
+                            % No padding applied
+                            outputArray = outputArray;
+                            
+                        case 'zero'
+                            % Apply zero padding
+                            outputArray = padarray(outputArray, [0, 0, z_padding], 0, 'both');
+                            
+                        case 'mirror'
+                            % Apply mirror padding
+                            outputArray = padarray(outputArray, [0, 0, z_padding], 'symmetric', 'both');
+                            
+                        case 'gaussian'
+                            % Apply Gaussian sampling padding with predefined mean and standard deviation
+                            frontPad = gaussian_mean + gaussian_std .* randn(size(outputArray, 1), size(outputArray, 2), z_padding);
+                            backPad = gaussian_mean + gaussian_std .* randn(size(outputArray, 1), size(outputArray, 2), z_padding);
+                            
+                            % Concatenate the Gaussian padding to the original array
+                            outputArray = cat(3, frontPad, outputArray, backPad);
+                            
+                        case 'fixed'
+                            % Apply fixed-value padding
+                            frontPad = fixed_value * ones(size(outputArray, 1), size(outputArray, 2), z_padding);
+                            backPad = fixed_value * ones(size(outputArray, 1), size(outputArray, 2), z_padding);
+                            
+                            % Concatenate the fixed padding to the original array
+                            outputArray = cat(3, frontPad, outputArray, backPad);
+                            
+                        otherwise
+                            error('Invalid z_edge_padding option. Choose ''none'', ''zero'', ''mirror'', ''gaussian'', or ''fixed''.');
+                    end
+                    
+                    % Output the result
+                    disp(['New size after padding: ', mat2str(size(outputArray))]);
+
 
                     %save the array as a tif
                     %I think this doesn't save metadata but that doesn't
@@ -386,9 +438,36 @@ for k = 1:nFiles
             reset(gpuDevice);
         end
         
+        %% Step 2.5 Crop the deconvolved output to remove the padding
+        dataPath_exps = [tifDir '\' resultDirName];
+        % Get list of .tif files in the folder
+        fileList = dir(fullfile(dataPath_exps, '*.tif'));
+
+        % Check if padding was applied (i.e., padding is not 'none')
+        if ~strcmp(z_edge_padding, 'none')
+            for k = 1:length(fileList)
+                % Construct full file path
+                filePath = fullfile(dataPath_exps, fileList(k).name);
+                
+                % Load the image
+                img = parallelReadTiff(filePath);
+                
+                % Check if the image has the expected padding size
+                if size(img, 3) > 2 * z_padding
+                    % Remove the padding from the z-axis
+                    img_no_padding = img(:, :, (z_padding + 1):(end - z_padding));
+                    
+                    parallelWriteTiff(filePath,img_no_padding);
+                else
+                    warning(['Skipping ', fileList(k).name, ': not enough depth for padding removal.']);
+                end
+            end
+        end
+
+
         %% Step 3: deskew the deconvolved results
         
-        dataPath_exps = [tifDir '\' resultDirName];
+        
         
         
         
@@ -398,9 +477,13 @@ for k = 1:nFiles
             masterCompute=masterCompute, configFile=configFile, mccMode=mccMode);
         
         %outputTiffFile = currentSeriesFolder + ".tif";
+        currentSeriesPath
+
         outputTiffFile = currentSeriesPath + ".tif";
         outputTiffPath = fullfile(inputFolder, outputTiffFile);
+        outputTiffPath
         inputToMerge = [dataPath_exps '\' 'DS'];
+        
         paraMergeTiffFilesToMultiDimStack(inputToMerge, outputTiffFile,pixelSizeX, deskewedZSpacing, frameInterval);
         
         

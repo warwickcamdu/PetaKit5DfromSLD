@@ -46,9 +46,13 @@ end
 % z step size
 dz = 0.5;
 
+% Change below to 'mirror' if you get edge artefacts with deconvolution.
+% For our purposes you don't need this unless you have signal in the first or last few slices of the stack.
+% Use a z_padding number that is half the number of slices in the stack, or fewer. And at least 5.
+% E.g. if you stack is 40 slices, then use 20.
 % Options: 'none', 'zero', 'mirror', 'gaussian', 'fixed'
-z_edge_padding = 'gaussian'; % Set default or input value
-z_padding = 20; % Default value
+z_edge_padding = 'none'; % Set default or input value
+z_padding = 10; % Default value
 
                     
 

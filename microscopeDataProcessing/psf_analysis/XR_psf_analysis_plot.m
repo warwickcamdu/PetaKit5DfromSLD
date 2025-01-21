@@ -64,6 +64,11 @@ movefile(tmpFnout, fnout);
 % plot line cut with RW line cuts as reference
 f0 = gcf();
 print(f0, '-painters','-dpng', '-loose',[result_dir filesep 'comp_' fsname '.png']);
+origUnits = f0.Units;
+f0.Units = f0.PaperUnits;
+f0.PaperSize = f0.Position(3:4);
+f0.Units = origUnits;
+print(f0, '-painters','-dpdf', '-loose',[result_dir filesep 'comp_' fsname '.pdf']);
 close all
 
 if visible
@@ -111,6 +116,7 @@ legend([{'OTF along kz','OTF along kx','Bowtie OTF along kx', 'RW OTF along kz',
 
 f0 = gcf();
 print(f0, '-painters','-dpng', '-loose', figureFullname);
+print(f0, '-painters','-dpdf', '-loose', [figureFullname(1:end-4) '.pdf']);
 
 if ~visible
     close all;

@@ -1,4 +1,4 @@
-% Devonvolves slidebook files (.sld) using PetaKit5D (formely known as
+% Deconvolves slidebook files (.sld) using PetaKit5D (formely known as
 % llsm5dtools), followed by deskewing, and finally saving as .tif files and maximum intensity projections. 
 % Petakit5d doesn't accept .sld files so firstly the sld files are converted to .tif. 
 
@@ -22,7 +22,7 @@
 
 %inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\to-be-deconvolvednext\';
 % inputFolder = 'E:\Scott\Software\petakit5d\test-data\Series0-1_T0-1_twochannels\';
-inputFolder = 'E:\David\edge-artefacts\nina\raw\input\';
+inputFolder = 'D:\LauraCooper\MWA\MonashZeissData\';
 
 % inputFolder = 'Z:\Shared243\sbrooks\petakittesting\single_timepoint\';
 % inputFolder = 'E:\Scott\Software\petakit5d\test-data\T0-2_twochannels\';
@@ -30,8 +30,8 @@ inputFolder = 'E:\David\edge-artefacts\nina\raw\input\';
 % Must be .tif format and placed in the same folder as the .sld files.
 % The PSF must have the same slice spacing as the image (e.g. 0.5um). 
 % The metadata probably needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
-PSF_C0 = '488_PSF.tif';
-PSF_C1 = '560_PSF.tif';
+PSF_C0 = 'PSF BW 647.tif';
+%PSF_C1 = '560_PSF.tif';
 
 % PSF_C0 = 'PSF_488.tif';
 % PSF_C1 = 'PSF_640.tif';
@@ -39,7 +39,7 @@ PSF_C1 = '560_PSF.tif';
 if ~isfile([inputFolder PSF_C0])
     error('File does not exist: %s', PSF_C0);
 end
-if ~isfile([inputFolder PSF_C1])
+if exist('PSF_C1','var') == 1 && ~isfile([inputFolder PSF_C1])
     error('File does not exist: %s', PSF_C1);
 end
 
@@ -116,7 +116,7 @@ ChannelPatterns = {'Ch0', 'Ch1', ...
 psf_rt = inputFolder;            
 PSFFullpaths = {
                 [psf_rt, PSF_C0], ...
-                [psf_rt, PSF_C1], ...
+                %[psf_rt, PSF_C1], ...
                 };             
 
 % OTF thresholding parameter
@@ -194,8 +194,8 @@ mccMode = false;
 
 %% Step 1. Convert the .sld files into .tif files
 
-% Find the .sld files in the directory
-filePattern = fullfile(inputFolder, '*.sld'); 
+% Find the .czi files in the directory
+filePattern = fullfile(inputFolder, '*.czi'); 
 theFiles = dir(filePattern);
 
 % Store total number of sld files to study
@@ -470,30 +470,26 @@ for k = 1:nFiles
 
 
         %% Step 3: deskew the deconvolved results
-        
-        
-        
-        
-        
-        XR_deskew_rotate_data_wrapper(dataPath_exps, skewAngle=skewAngle, flipZstack=flipZstack, DSRCombined=DSRCombined, rotate=rotate, xyPixelSize=xyPixelSize, dz=dz, ...
-            Reverse=Reverse, ChannelPatterns=ChannelPatterns, largeFile=largeFile, ...
-            zarrFile=zarrFile, saveZarr=saveZarr, Save16bit=Save16bit, parseCluster=parseCluster, ...
-            masterCompute=masterCompute, configFile=configFile, mccMode=mccMode);
+
+       % XR_deskew_rotate_data_wrapper(dataPath_exps, skewAngle=skewAngle, flipZstack=flipZstack, DSRCombined=DSRCombined, rotate=rotate, xyPixelSize=xyPixelSize, dz=dz, ...
+       %     Reverse=Reverse, ChannelPatterns=ChannelPatterns, largeFile=largeFile, ...
+       %     zarrFile=zarrFile, saveZarr=saveZarr, Save16bit=Save16bit, parseCluster=parseCluster, ...
+       %     masterCompute=masterCompute, configFile=configFile, mccMode=mccMode);
         
         %outputTiffFile = currentSeriesFolder + ".tif";
-        currentSeriesPath
-
-        outputTiffFile = currentSeriesPath + ".tif";
-        outputTiffPath = fullfile(inputFolder, outputTiffFile);
-        outputTiffPath
-        inputToMerge = [dataPath_exps '\' 'DS'];
-        
-        paraMergeTiffFilesToMultiDimStack(inputToMerge, outputTiffFile,pixelSizeX, deskewedZSpacing, frameInterval);
-        
-        
-        outputTiffFileMax = currentSeriesPath + "_MAX.tif";
-        inputToMergeMax = [inputToMerge '\' 'MIPs'];
-        paraMergeMaxToStack(inputToMergeMax, outputTiffFileMax,pixelSizeX, frameInterval);
+%         currentSeriesPath
+% 
+%         outputTiffFile = currentSeriesPath + ".tif";
+%         outputTiffPath = fullfile(inputFolder, outputTiffFile);
+%         outputTiffPath
+%         inputToMerge = [dataPath_exps '\' 'DS'];
+%         
+%         paraMergeTiffFilesToMultiDimStack(inputToMerge, outputTiffFile,pixelSizeX, deskewedZSpacing, frameInterval);
+%         
+%         
+%         outputTiffFileMax = currentSeriesPath + "_MAX.tif";
+%         inputToMergeMax = [inputToMerge '\' 'MIPs'];
+%         paraMergeMaxToStack(inputToMergeMax, outputTiffFileMax,pixelSizeX, frameInterval);
         
     end
 

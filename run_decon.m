@@ -14,29 +14,26 @@
 % Requires a PSF for each channel in .tif format (not .tiff).
 % All the .sld or .czi files in that folder will be processed with the same PSF.
 
-% To switch between Zeiss and 3i currently requires manually changing
-% xyPixelSize, skewAngle, flipZstack, and llsmType = "czi"
-
 % TODO: Make it so that if its 2D it skips the series
 
 % Folder containing the .sld files to be processed.
 % Don't use "C0" or "C1" in the .sld filenames or anywhere in the pathname,
 % otherwise it'll break. Folder path needs to end in \
-inputFolder = 'D:\LauraCooper\MWA\SLD\';
+% Ask the user to select a folder first
+[inputFolder, filePaths]=inputSelector();
 
 % Name of the PSF files.
 % Must be .tif format and placed in the same folder as the .sld or .czi files.
 % The PSF must have the same slice spacing as the image (e.g. 0.5um). 
 % The metadata probably needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
-PSF_C0 = '2024-09-13_PSF_488.tif';
+%PSF_C0 = '2024-09-13_PSF_488.tif';
 %PSF_C1 = '560_PSF.tif';
 
-if ~isfile([inputFolder PSF_C0])
-    error('File does not exist: %s', PSF_C0);
+for i=1:length(filePaths)
+    if ~isfile(filePaths{i})
+        error('File does not exist: %s', filePaths{i});
+    end
 end
-% if ~isfile([inputFolder PSF_C1])
-%     error('File does not exist: %s', PSF_C1);
-% end
 
 % z step size
 dz = 1;
@@ -103,10 +100,7 @@ ChannelPatterns = {'Ch0', ...
 
 % psf path
 psf_rt = inputFolder;            
-PSFFullpaths = {
-                [psf_rt, PSF_C0], ...
-                %[psf_rt, PSF_C1], ...
-                };             
+PSFFullpaths = filePaths;            
 
 % OTF thresholding parameter
 OTFCumThresh = 0.9;
@@ -282,9 +276,7 @@ for k = 1:nFiles
         %     frameInterval = NaN;
         % end
         if stackSizeC == 1
-            PSFFullpaths = {
-                [psf_rt, PSF_C0], ...
-                };     
+            PSFFullpaths = filePaths;
             ChannelPatterns = {'Ch0', ...
                    };  
         end 
@@ -446,7 +438,7 @@ for k = 1:nFiles
         % rotate (if objective scan) or other processings. 
         fprintf('Starting deconvolution...\n\n');
         
-        
+       
         XR_decon_data_wrapper(tifDir, 'resultDirName', resultDirName, 'xyPixelSize', xyPixelSize, ...
             'dz', dz, 'Reverse', Reverse, 'ChannelPatterns', ChannelPatterns, 'PSFFullpaths', PSFFullpaths, ...
             'dzPSF', dzPSF, 'parseSettingFile', parseSettingFile, 'RLmethod', RLmethod, ...

@@ -22,13 +22,13 @@
 % Folder containing the .sld files to be processed.
 % Don't use "C0" or "C1" in the .sld filenames or anywhere in the pathname,
 % otherwise it'll break. Folder path needs to end in \
-inputFolder = 'C:\Users\camdu\Downloads\LLSM5DTools-add-sld-suppot\data\';
+inputFolder = 'D:\LauraCooper\MWA\SLD\';
 
 % Name of the PSF files.
 % Must be .tif format and placed in the same folder as the .sld or .czi files.
 % The PSF must have the same slice spacing as the image (e.g. 0.5um). 
 % The metadata probably needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
-PSF_C0 = 'PSF BW 647.tif';
+PSF_C0 = '2024-09-13_PSF_488.tif';
 %PSF_C1 = '560_PSF.tif';
 
 if ~isfile([inputFolder PSF_C0])
@@ -85,7 +85,8 @@ deleteDeconTif = false;
 % setup([]);
 
 % xy pixel size in um. 0.104 um for 3i LLSM, 0.1449922 for Zeiss LSM
-xyPixelSize = 0.1449922;
+czi_xyPixelSize = 0.1449922; %Zeiss LSM
+sld_xyPixelSize = 0.104; %3i LLSM
 
 % scan direction
 Reverse = true;
@@ -152,13 +153,15 @@ mccMode = false;
 % also do coverslip correction rotation (usually at Warwick we don't do this)
 rotate = false;
 % skew angle, this is 32.8 for the 3i LLSM, and 30 for the Zeiss LLSM
-skewAngle = 30;
+czi_skewAngle = 32.8; %Zeiss LLSM
+sld_skewAngle = 30; %3i LLSM
 radians = deg2rad(skewAngle);
 
 % Calculate the sine of the angle in radians
 sine_value = sin(radians);
 % flipZstack, this is true for the 3i LLSM, and false for the Zeiss LLSM
-flipZstack = false;
+czi_flipZstack = false;
+sld_flipZstack = true;
 % not sure this is necessary when we aren't rotating
 DSRCombined = false;
 % true if input is in Zarr format
@@ -182,19 +185,34 @@ mccMode = false;
 
 %% Step 1. Convert the .sld files into .tif files
 
-% Did the images come from the Zeiss or the 3i lattice lightsheet microscope?
-% Type "czi" for the Zeiss or "sld" for the 3i 
-% we could make this automatic from the file types?
+% Find "czi" or "sld" files in directory. All files assumed to be one or
+% the other
 llsmType = "czi"; 
-
-% Find the .sld files in the directory
 filePattern = fullfile(inputFolder, strcat('*.', llsmType)); 
 theFiles = dir(filePattern);
+xyPixelSize = czi_xyPixelSize;
+skewAngle = czi_skewAngle;
+flipZstack = czi_flipZstack;
+%is not czi files found look for slds
+if isempty(theFiles)
+    llsmType = "sld";
+    filePattern = fullfile(inputFolder, strcat('*.', llsmType)); 
+    theFiles = dir(filePattern);
+    xyPixelSize = sld_xyPixelSize;
+    skewAngle = sld_skewAngle;
+    flipZstack = sld_flipZstack;
+end
 
-% Store total number of sld files to study
+%If not sld or czi files found, exit the script
+if isempty(theFiles)
+    fprintf("No .czi or .sld files found. Exiting script.\n");
+    return;
+end
+
+% Store total number of files to study
 nFiles = length(theFiles);
 
-% Iterate through all the .sld files in the directory
+% Iterate through all the .sld or .czi files in the directory
 for k = 1:nFiles
     fprintf("   >> Converting .%s to tif: %3d / %3d\n", llsmType, k, nFiles);
 

@@ -22,7 +22,7 @@
 % Folder containing the .sld files to be processed.
 % Don't use "C0" or "C1" in the .sld filenames or anywhere in the pathname,
 % otherwise it'll break. Folder path needs to end in \
-inputFolder = 'C:\Users\camdu\Downloads\LLSM5DTools-add-sld-suppot\data\';
+inputFolder = 'D:\LauraCooper\MWA\MZA_1\';
 
 % Name of the PSF files.
 % Must be .tif format and placed in the same folder as the .sld or .czi files.
@@ -85,7 +85,9 @@ deleteDeconTif = false;
 % setup([]);
 
 % xy pixel size in um. 0.104 um for 3i LLSM, 0.1449922 for Zeiss LSM
-xyPixelSize = 0.1449922;
+czi_xyPixelSize = 0.1449922; %Zeiss LSM
+sld_xyPixelSize = 0.104; %3i LLSM
+%xyPixelSize
 
 % scan direction
 Reverse = true;
@@ -152,13 +154,15 @@ mccMode = false;
 % also do coverslip correction rotation (usually at Warwick we don't do this)
 rotate = false;
 % skew angle, this is 32.8 for the 3i LLSM, and 30 for the Zeiss LLSM
-skewAngle = 30;
+czi_skewAngle = 32.8; %Zeiss LLSM
+sld_skewAngle = 30; %3i LLSM
 radians = deg2rad(skewAngle);
 
 % Calculate the sine of the angle in radians
 sine_value = sin(radians);
 % flipZstack, this is true for the 3i LLSM, and false for the Zeiss LLSM
-flipZstack = false;
+czi_flipZstack = false;
+sld_flipZstack = true;
 % not sure this is necessary when we aren't rotating
 DSRCombined = false;
 % true if input is in Zarr format
@@ -187,7 +191,7 @@ mccMode = false;
 % we could make this automatic from the file types?
 llsmType = "czi"; 
 
-% Find the .sld files in the directory
+% Find the files in the directory
 filePattern = fullfile(inputFolder, strcat('*.', llsmType)); 
 theFiles = dir(filePattern);
 

@@ -2,7 +2,7 @@ The bfmatlab here has been modified using the below procedure. The bfmatlab is v
 
 To open slidebook files (.sld) in MATLAB is not so easy. For some reason you can't just use the official bfmatlab (bioformats matlab toolbox). The bfmatlab here has been modified using the below procedure. 
 
-1. Download a specific SlideBook6Reader.jar file from 3i. Hella emailed me this 28th May 2024 using the hightail file upload service. Link here, and also on CAMDU server here.
+1. Download a specific SlideBook6Reader.jar file from 3i. 3i emailed me this 28th May 2024 using the hightail file upload service. Link here, and also on CAMDU server here.
 
 2. Install 7zip. Unzip the SlideBook6Reader.zip file. 
 

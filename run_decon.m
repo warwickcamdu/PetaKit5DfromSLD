@@ -37,10 +37,10 @@ PSF_C1 = '560_PSF.tif';
 % PSF_C1 = 'PSF_640.tif';
 
 if ~isfile([inputFolder PSF_C0])
-    error('File does not exist: %s', PSF_C0);
+    warning('Warning, PSF file does not exist, it may crash when deconvolving: %s', PSF_C0);
 end
 if ~isfile([inputFolder PSF_C1])
-    error('File does not exist: %s', PSF_C1);
+    warning('Warning, PSF file does not exist, it may crash when deconvolving: %s', PSF_C1);
 end
 
 % z step size

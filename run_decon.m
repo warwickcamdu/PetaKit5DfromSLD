@@ -1,6 +1,6 @@
-% Deconvolves slidebook files (.sld) using PetaKit5D (formely known as
+% Devonvolves LLSM 3i Slidebook (.sld) or Zeiss files (.czi) using PetaKit5D (formely known as
 % llsm5dtools), followed by deskewing, and finally saving as .tif files and maximum intensity projections. 
-% Petakit5d doesn't accept .sld files so firstly the sld files are converted to .tif. 
+% Petakit5d doesn't accept .sld or .czi files so firstly these are converted to .tif. 
 
 % Requires installing PetaKit5D (not the GUI version) and adding it to the matlab path 
 % Installation instructions with the required matlab toolboxes are on their github:
@@ -12,24 +12,21 @@
 % This will be available somewhere like the CAMDU github
 
 % Requires a PSF for each channel in .tif format (not .tiff).
-% All the .sld files in that folder will be processed with the same PSF.
+% All the .sld or .czi files in that folder will be processed with the same PSF.
+
+% TODO: Make it so that if its 2D it skips the series
 
 % Folder containing the .sld files to be processed.
 % Don't use "C0" or "C1" in the .sld filenames or anywhere in the pathname,
 % otherwise it'll break. Folder path needs to end in \
+% Ask the user to select a folder first
+[inputFolder, filePaths]=inputSelector();
 
-% TODO: Make it so that if its 2D it skips the series
-
-%inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\to-be-deconvolvednext\';
-% inputFolder = 'E:\Scott\Software\petakit5d\test-data\Series0-1_T0-1_twochannels\';
-inputFolder = 'D:\LauraCooper\MWA\MonashZeissData\';
-
-% inputFolder = 'Z:\Shared243\sbrooks\petakittesting\single_timepoint\';
-% inputFolder = 'E:\Scott\Software\petakit5d\test-data\T0-2_twochannels\';
 % Name of the PSF files.
-% Must be .tif format and placed in the same folder as the .sld files.
+% Must be .tif format and placed in the same folder as the .sld or .czi files.
 % The PSF must have the same slice spacing as the image (e.g. 0.5um). 
 % The metadata probably needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
+
 PSF_C0 = 'PSF BW 647.tif';
 %PSF_C1 = '560_PSF.tif';
 
@@ -41,10 +38,15 @@ if ~isfile([inputFolder PSF_C0])
 end
 if exist('PSF_C1','var') == 1 && ~isfile([inputFolder PSF_C1])
     error('File does not exist: %s', PSF_C1);
+
+for i=1:length(filePaths)
+    if ~isfile(filePaths{i})
+        error('File does not exist: %s', filePaths{i});
+    end
 end
 
 % z step size
-dz = 0.5;
+dz = 1;
 
 % Change below to 'mirror' if you get edge artefacts with deconvolution.
 % For our purposes you don't need this unless you have signal in the first or last few slices of the stack.
@@ -53,10 +55,7 @@ dz = 0.5;
 % Options: 'none', 'zero', 'mirror', 'gaussian', 'fixed'
 z_edge_padding = 'none'; % Set default or input value
 z_padding = 10; % Default value
-
-                    
-
-
+ 
 % Predefine parameters for Gaussian and fixed padding
 gaussian_mean = 102.27; % Mean for Gaussian sampling
 gaussian_std = 3.17; % Standard deviation for Gaussian sampling
@@ -76,7 +75,7 @@ fixed_value = 100; % Value for fixed padding
 % Choose a deconvolution method. Either 'omw' or the standard matlab richardson lucy 'simplified'. 
 RLmethod = 'simplified';
 % number of iterations for deconvolution. For omw use 2 iterations.
-DeconIter = 10;
+DeconIter = 1;
 % Wiener filter parameter for OMW deconvolution method
 % alpha parameter should be adjusted based on SNR and data quality.
 % typically 0.002 - 0.01 for SNR ~20; 0.02 - 0.1 or higher for SNR ~7
@@ -87,17 +86,14 @@ deleteRawTif = false;
 % Delete the .tif files that are deconvolved but not deskewed
 deleteDeconTif = false;
 
-
 %% Preset Parameters 
-
-
 % Deconvolution parameters 
-
 % add the software to the path not working 
 % setup([]);
 
-% xy pixel size in um. Always 0.104 um for 3i LLSM (different to others)
-xyPixelSize = 0.104;
+% xy pixel size in um. 0.104 um for 3i LLSM, 0.1449922 for Zeiss LSM
+czi_xyPixelSize = 0.1449922; %Zeiss LSM
+sld_xyPixelSize = 0.104; %3i LLSM
 
 % scan direction
 Reverse = true;
@@ -109,15 +105,14 @@ parseSettingFile = false;
 
 % channel patterns for the channels, the channel patterns should map the
 % order of PSF filenames.
-ChannelPatterns = {'Ch0', 'Ch1', ...
+ChannelPatterns = {'Ch0', ...
                    };  
 
 % psf path
 psf_rt = inputFolder;            
-PSFFullpaths = {
-                [psf_rt, PSF_C0], ...
-                %[psf_rt, PSF_C1], ...
-                };             
+
+PSFFullpaths = filePaths;            
+
 
 % OTF thresholding parameter
 OTFCumThresh = 0.9;
@@ -163,14 +158,16 @@ mccMode = false;
 
 % also do coverslip correction rotation (usually at Warwick we don't do this)
 rotate = false;
-% skew angle, this is 32.8 for the 3i LLSM which is different to others
-skewAngle = 32.8;
+% skew angle, this is 32.8 for the 3i LLSM, and 30 for the Zeiss LLSM
+czi_skewAngle = 32.8; %Zeiss LLSM
+sld_skewAngle = 30; %3i LLSM
 radians = deg2rad(skewAngle);
 
 % Calculate the sine of the angle in radians
 sine_value = sin(radians);
-% flipZstack, I think we want this true
-flipZstack = true;
+% flipZstack, this is true for the 3i LLSM, and false for the Zeiss LLSM
+czi_flipZstack = false;
+sld_flipZstack = true;
 % not sure this is necessary when we aren't rotating
 DSRCombined = false;
 % true if input is in Zarr format
@@ -194,16 +191,36 @@ mccMode = false;
 
 %% Step 1. Convert the .sld files into .tif files
 
-% Find the .czi files in the directory
-filePattern = fullfile(inputFolder, '*.czi'); 
+% Find "czi" or "sld" files in directory. All files assumed to be one or
+% the other
+llsmType = "czi"; 
+filePattern = fullfile(inputFolder, strcat('*.', llsmType)); 
 theFiles = dir(filePattern);
+xyPixelSize = czi_xyPixelSize;
+skewAngle = czi_skewAngle;
+flipZstack = czi_flipZstack;
+%if no czi files found look for slds
+if isempty(theFiles)
+    llsmType = "sld";
+    filePattern = fullfile(inputFolder, strcat('*.', llsmType)); 
+    theFiles = dir(filePattern);
+    xyPixelSize = sld_xyPixelSize;
+    skewAngle = sld_skewAngle;
+    flipZstack = sld_flipZstack;
+end
 
-% Store total number of sld files to study
+%If not sld or czi files found, exit the script
+if isempty(theFiles)
+    fprintf("No .czi or .sld files found. Exiting script.\n");
+    return;
+end
+
+% Store total number of files to study
 nFiles = length(theFiles);
 
-% Iterate through all the .sld files in the directory
+% Iterate through all the .sld or .czi files in the directory
 for k = 1:nFiles
-    fprintf("   >> Converting .sld to tif: %3d / %3d\n", k, nFiles);
+    fprintf("   >> Converting .%s to tif: %3d / %3d\n", llsmType, k, nFiles);
 
     % Define full file name for current loop iteration
     baseFileName = theFiles(k).name;
@@ -246,6 +263,12 @@ for k = 1:nFiles
             pixelSizeY = NaN;
         end
 
+        % if the images come from the zeiss lattice lightsheet (czi format) the image will rotated 90 degrees clockwise later,
+        % so swap stackSizeX and stackSizeY here
+        if llsmType=="czi" 
+            [stackSizeX, stackSizeY] = deal(stackSizeY, stackSizeX);
+        end
+
         % Extract Z spacing
         pixelSizeZ = omeMeta.getPixelsPhysicalSizeZ(S); % in micrometers
         if ~isempty(pixelSizeZ)
@@ -265,14 +288,10 @@ for k = 1:nFiles
         %     frameInterval = NaN;
         % end
         if stackSizeC == 1
-            PSFFullpaths = {
-                [psf_rt, PSF_C0], ...
-                };     
+            PSFFullpaths = filePaths;
             ChannelPatterns = {'Ch0', ...
                    };  
         end 
-
-
 
         % Print extracted values
         fprintf('Stack Size (X, Y, Z, C, T): (%d, %d, %d, %d, %d)\n', stackSizeX, stackSizeY, stackSizeZ, stackSizeC, stackSizeT);
@@ -280,12 +299,13 @@ for k = 1:nFiles
         fprintf('Z Spacing: %.2f micrometers\n', pixelSizeZ);
         fprintf('Deskewed Z Spacing: %.3f micrometers\n', deskewedZSpacing);
 
-
         seriesName = char(omeMeta.getImageName(S));
+        seriesName = strrep(seriesName, "#", "");  % Remove all '#' characters
+        seriesName = strrep(seriesName, ".", "");  % Remove all '.' characters
 
-        % Take the .sld filename and the series image name and make a new
+        % Take the original image filename and the series image name and make a new
         % folder based on this
-        seriesFolderName = strrep(baseFileName, ".sld", "");
+        seriesFolderName = strrep(baseFileName, strcat(".", llsmType), "");
         seriesNameNoSpaces = strrep(seriesName, " ", "_");
         currentSeriesFolder = seriesFolderName+'_'+seriesNameNoSpaces;
         mkdir(inputFolder,currentSeriesFolder);
@@ -293,7 +313,6 @@ for k = 1:nFiles
         currentSeriesPath = fullfile(inputFolder, currentSeriesFolder);
 
         % make a folder to store the .tif files
-
 
         mkdir(currentSeriesPath,'tifs');
         tifDir = currentSeriesPath+ '\'+ 'tifs';
@@ -318,6 +337,12 @@ for k = 1:nFiles
                         %convert to double
                         plane = bfGetPlane(r, r.getIndex(Z, C, T) +1);
                         plane = double(plane);
+
+                        % if the images come from the Zeiss LLSM then rotate the plane 90 degrees clockwise
+                        % required for later deskew (and deconvolution?) steps
+                        if llsmType == "czi"
+                            plane = rot90(plane, -1);
+                        end
 
                         %Add plane to array at position (count, 1)(in essence
                         %you are appending the array) and add 1 to count.
@@ -351,11 +376,11 @@ for k = 1:nFiles
 
                     % Ensure all variables are character arrays
                     tifDir = char(tifDir);
-                    tifFullpath = [tifDir '\' strSld '_S' strS '_T' strT '_Ch' strC '.tif'];
-                    
-
+                    tifFullpath = [tifDir '\' strSld '_S' strS '_T' strT '_Ch' strC '.tif'];  
                     
                     % Check the padding type and apply accordingly
+                    % We should automatically turn padding off if only
+                    % deskew, and no deconvolution
                     switch z_edge_padding
                         case 'none'
                             % No padding applied
@@ -392,7 +417,6 @@ for k = 1:nFiles
                     % Output the result
                     disp(['New size after padding: ', mat2str(size(outputArray))]);
 
-
                     %save the array as a tif
                     %I think this doesn't save metadata but that doesn't
                     %seem to matter for the deconvolution step
@@ -426,7 +450,7 @@ for k = 1:nFiles
         % rotate (if objective scan) or other processings. 
         fprintf('Starting deconvolution...\n\n');
         
-        
+       
         XR_decon_data_wrapper(tifDir, 'resultDirName', resultDirName, 'xyPixelSize', xyPixelSize, ...
             'dz', dz, 'Reverse', Reverse, 'ChannelPatterns', ChannelPatterns, 'PSFFullpaths', PSFFullpaths, ...
             'dzPSF', dzPSF, 'parseSettingFile', parseSettingFile, 'RLmethod', RLmethod, ...
@@ -470,33 +494,15 @@ for k = 1:nFiles
 
 
         %% Step 3: deskew the deconvolved results
-
-       % XR_deskew_rotate_data_wrapper(dataPath_exps, skewAngle=skewAngle, flipZstack=flipZstack, DSRCombined=DSRCombined, rotate=rotate, xyPixelSize=xyPixelSize, dz=dz, ...
-       %     Reverse=Reverse, ChannelPatterns=ChannelPatterns, largeFile=largeFile, ...
-       %     zarrFile=zarrFile, saveZarr=saveZarr, Save16bit=Save16bit, parseCluster=parseCluster, ...
-       %     masterCompute=masterCompute, configFile=configFile, mccMode=mccMode);
-        
-        %outputTiffFile = currentSeriesFolder + ".tif";
-%         currentSeriesPath
-% 
-%         outputTiffFile = currentSeriesPath + ".tif";
-%         outputTiffPath = fullfile(inputFolder, outputTiffFile);
-%         outputTiffPath
-%         inputToMerge = [dataPath_exps '\' 'DS'];
-%         
-%         paraMergeTiffFilesToMultiDimStack(inputToMerge, outputTiffFile,pixelSizeX, deskewedZSpacing, frameInterval);
-%         
-%         
-%         outputTiffFileMax = currentSeriesPath + "_MAX.tif";
-%         inputToMergeMax = [inputToMerge '\' 'MIPs'];
-%         paraMergeMaxToStack(inputToMergeMax, outputTiffFileMax,pixelSizeX, frameInterval);
+       
+        XR_deskew_rotate_data_wrapper(dataPath_exps, skewAngle=skewAngle, flipZstack=flipZstack, DSRCombined=DSRCombined, rotate=rotate, xyPixelSize=xyPixelSize, dz=dz, ...
+            Reverse=Reverse, ChannelPatterns=ChannelPatterns, largeFile=largeFile, ...
+            zarrFile=zarrFile, saveZarr=saveZarr, Save16bit=Save16bit, parseCluster=parseCluster, ...
+            masterCompute=masterCompute, configFile=configFile, mccMode=mccMode);
         
     end
 
 end
-
-
-
 
 % This was not clear, may need to be added just before the deconvolution
 % step
@@ -515,8 +521,6 @@ end
 %     end
 % end
 
-
-
 %% Step 4: delete intermediate .tif files
  
 % deletes the raw tifs if the flag is true
@@ -526,10 +530,10 @@ if deleteRawTif == true
     filePattern = fullfile(tifDir, '*.tif'); 
     theFiles = dir(filePattern);
     
-    % Store total number of sld files to study
+    % Store total number of .sld or .czi files to study
     nFiles = length(theFiles);
     
-    % Iterate through all the .sld files in the directory
+    % Iterate through all the .sld or .czi files in the directory
     for k = 1:nFiles        
     
         % Define full file name for current loop iteration
@@ -538,7 +542,6 @@ if deleteRawTif == true
         delete(fullFileName);
     end
 end
-
 
 % deletes the .tif files that are deconvolved but not deskewed, if the flag is true
 if deleteDeconTif == true 
@@ -550,10 +553,10 @@ if deleteDeconTif == true
     filePattern = fullfile(deconTifDir, '*.tif'); 
     theFiles = dir(filePattern);
     
-    % Store total number of sld files to study
+    % Store total number of .sld or .czi files to study
     nFiles = length(theFiles);
     
-    % Iterate through all the .sld files in the directory
+    % Iterate through all the .sld or .czi files in the directory
     for k = 1:nFiles
             
         % Define full file name for current loop iteration

@@ -26,8 +26,18 @@
 % Must be .tif format and placed in the same folder as the .sld or .czi files.
 % The PSF must have the same slice spacing as the image (e.g. 0.5um). 
 % The metadata probably needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
-%PSF_C0 = '2024-09-13_PSF_488.tif';
+
+PSF_C0 = 'PSF BW 647.tif';
 %PSF_C1 = '560_PSF.tif';
+
+% PSF_C0 = 'PSF_488.tif';
+% PSF_C1 = 'PSF_640.tif';
+
+if ~isfile([inputFolder PSF_C0])
+    error('File does not exist: %s', PSF_C0);
+end
+if exist('PSF_C1','var') == 1 && ~isfile([inputFolder PSF_C1])
+    error('File does not exist: %s', PSF_C1);
 
 for i=1:length(filePaths)
     if ~isfile(filePaths{i})
@@ -100,7 +110,9 @@ ChannelPatterns = {'Ch0', ...
 
 % psf path
 psf_rt = inputFolder;            
+
 PSFFullpaths = filePaths;            
+
 
 % OTF thresholding parameter
 OTFCumThresh = 0.9;
@@ -187,7 +199,7 @@ theFiles = dir(filePattern);
 xyPixelSize = czi_xyPixelSize;
 skewAngle = czi_skewAngle;
 flipZstack = czi_flipZstack;
-%is not czi files found look for slds
+%if no czi files found look for slds
 if isempty(theFiles)
     llsmType = "sld";
     filePattern = fullfile(inputFolder, strcat('*.', llsmType)); 
@@ -482,24 +494,11 @@ for k = 1:nFiles
 
 
         %% Step 3: deskew the deconvolved results
-        
+       
         XR_deskew_rotate_data_wrapper(dataPath_exps, skewAngle=skewAngle, flipZstack=flipZstack, DSRCombined=DSRCombined, rotate=rotate, xyPixelSize=xyPixelSize, dz=dz, ...
             Reverse=Reverse, ChannelPatterns=ChannelPatterns, largeFile=largeFile, ...
             zarrFile=zarrFile, saveZarr=saveZarr, Save16bit=Save16bit, parseCluster=parseCluster, ...
             masterCompute=masterCompute, configFile=configFile, mccMode=mccMode);
-        
-        % outputTiffFile = currentSeriesFolder + ".tif";
-        % 
-        % outputTiffFile = currentSeriesPath + ".tif";
-        % outputTiffPath = fullfile(inputFolder, outputTiffFile);
-        % 
-        % inputToMerge = [dataPath_exps '\' 'DS'];
-        % 
-        % paraMergeTiffFilesToMultiDimStack(inputToMerge, outputTiffFile,pixelSizeX, deskewedZSpacing, frameInterval);
-        % 
-        % outputTiffFileMax = currentSeriesPath + "_MAX.tif";
-        % inputToMergeMax = [inputToMerge '\' 'MIPs'];
-        % paraMergeMaxToStack(inputToMergeMax, outputTiffFileMax,pixelSizeX, frameInterval);
         
     end
 

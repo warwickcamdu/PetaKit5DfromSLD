@@ -27,17 +27,18 @@
 % The PSF must have the same slice spacing as the image (e.g. 0.5um). 
 % The metadata probably needs to be correct for the XYZ pixel spacing (e.g. 0.104 um for XY and 0.5 um for Z). 
 
-PSF_C0 = 'PSF BW 647.tif';
+% PSF_C0 = 'PSF BW 647.tif';
 %PSF_C1 = '560_PSF.tif';
 
 % PSF_C0 = 'PSF_488.tif';
 % PSF_C1 = 'PSF_640.tif';
 
-if ~isfile([inputFolder PSF_C0])
-    error('File does not exist: %s', PSF_C0);
-end
-if exist('PSF_C1','var') == 1 && ~isfile([inputFolder PSF_C1])
-    error('File does not exist: %s', PSF_C1);
+% if ~isfile([inputFolder PSF_C0])
+%     error('File does not exist: %s', PSF_C0);
+% end
+% if exist('PSF_C1','var') == 1 && ~isfile([inputFolder PSF_C1])
+%     error('File does not exist: %s', PSF_C1);
+% end
 
 for i=1:length(filePaths)
     if ~isfile(filePaths{i})
@@ -161,10 +162,8 @@ rotate = false;
 % skew angle, this is 32.8 for the 3i LLSM, and 30 for the Zeiss LLSM
 czi_skewAngle = 32.8; %Zeiss LLSM
 sld_skewAngle = 30; %3i LLSM
-radians = deg2rad(skewAngle);
 
-% Calculate the sine of the angle in radians
-sine_value = sin(radians);
+
 % flipZstack, this is true for the 3i LLSM, and false for the Zeiss LLSM
 czi_flipZstack = false;
 sld_flipZstack = true;
@@ -208,6 +207,9 @@ if isempty(theFiles)
     skewAngle = sld_skewAngle;
     flipZstack = sld_flipZstack;
 end
+radians = deg2rad(skewAngle);
+% Calculate the sine of the angle in radians
+sine_value = sin(radians);
 
 %If not sld or czi files found, exit the script
 if isempty(theFiles)
@@ -315,7 +317,7 @@ for k = 1:nFiles
         % make a folder to store the .tif files
 
         mkdir(currentSeriesPath,'tifs');
-        tifDir = currentSeriesPath+ '\'+ 'tifs';
+        tifDir = fullfile(currentSeriesPath,'tifs');
 
         %skip the series if it has only one Z-slice
         plane_count = 0;
@@ -376,7 +378,7 @@ for k = 1:nFiles
 
                     % Ensure all variables are character arrays
                     tifDir = char(tifDir);
-                    tifFullpath = [tifDir '\' strSld '_S' strS '_T' strT '_Ch' strC '.tif'];  
+                    tifFullpath = fullfile(tifDir, [strSld '_S' strS '_T' strT '_Ch' strC '.tif']);  
                     
                     % Check the padding type and apply accordingly
                     % We should automatically turn padding off if only
@@ -467,7 +469,7 @@ for k = 1:nFiles
         end
         
         %% Step 2.5 Crop the deconvolved output to remove the padding
-        dataPath_exps = [tifDir '\' resultDirName];
+        dataPath_exps = fullfile(tifDir, resultDirName);
         % Get list of .tif files in the folder
         fileList = dir(fullfile(dataPath_exps, '*.tif'));
 
@@ -547,7 +549,7 @@ end
 if deleteDeconTif == true 
 
     % Path to the deconvolved .tif files
-    deconTifDir = [tifDir '\' resultDirName];
+    deconTifDir = fullfile(tifDir, resultDirName);
     % Find the raw .tif files (i.e. not deconvolved, not deskewed)
     
     filePattern = fullfile(deconTifDir, '*.tif'); 

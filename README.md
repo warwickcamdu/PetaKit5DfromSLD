@@ -2,7 +2,7 @@
 
 # PetaKit5DfromSLD
 
-Modified version of PetaKit5D to read in the 3i Lattice Lightsheet Microscope Slidebook files (.sld), deconvolve and deskew using PetaKit5D, then reconstruct to a 5D tif. Requires installing PetaKit5D.
+Modified version of PetaKit5D to read in the 3i Lattice Lightsheet Microscope Slidebook files (.sld), deconvolve and deskew using PetaKit5D, then reconstruct to a 5D tif. Requires installing PetaKit5D. To read .sld files using Matlab on linux may require update to java 11 (matlab ships with java 8).
 
 Authors: David Corcoran, Laura Cooper, Scott Brooks and Yara Aghabi
 

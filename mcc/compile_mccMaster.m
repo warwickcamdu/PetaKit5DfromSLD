@@ -1,10 +1,13 @@
-function [] = compile_mccMaster(nojvm, zipMac)
+function [] = compile_mccMaster(nojvm, createMCRInstaller, zipMac)
 % script to compile and configure mccMaster.m
 
 if nargin < 1
     nojvm = true;
 end
 if nargin < 2
+    createMCRInstaller = false;
+end
+if nargin < 3
     zipMac = true;
 end
 
@@ -24,9 +27,13 @@ if ismac
     if ~exist(mccPath, 'dir')
         mkdir_recursive(mccPath);
     end
+    ioReleaseFolder = 'mac';
+    if computer == "MACA64"
+        ioReleaseFolder = 'macArm';
+    end
     % mcc -v -R -nodisplay -C -d /Applications/PetaKit5DMCC -m mccMaster.m
-    copyfile([fpath '/../microscopeDataProcessing/io/cpp-tiff/mac/*.dylib'], ['/Applications/', mdir, '/']);
-    copyfile([fpath '/../microscopeDataProcessing/io/cpp-zarr/mac/*.dylib'], ['/Applications/', mdir, '/']);
+    copyfile([fpath '/../microscopeDataProcessing/io/cpp-tiff/' ioReleaseFolder '/*.dylib'], ['/Applications/', mdir, '/']);
+    copyfile([fpath '/../microscopeDataProcessing/io/cpp-zarr/' ioReleaseFolder '/*.dylib'], ['/Applications/', mdir, '/']);
     if nojvm
         mcc -v -R -nodisplay -R -nojvm -C -d /Applications/PetaKit5DMCC/mac -m mccMaster.m
     else
@@ -50,7 +57,7 @@ if ismac
         mkdir('mac');
     end
     if zipMac
-        zip('mac/PetaKit5DMCC.zip', '/Applications/PetaKit5DMCC/*')
+        zip('mac/PetaKit5DMCC.zip', '/Applications/PetaKit5DMCC/*');
     end
 elseif isunix
     if nojvm
@@ -94,6 +101,14 @@ elseif ispc
     cd(mdir);
     copyfile('../../microscopeDataProcessing/io/cpp-tiff/windows/*dll', './');
     copyfile('../../microscopeDataProcessing/io/cpp-zarr/windows/*dll', './');
+end
+
+if createMCRInstaller
+    cd(fpath);
+    if ismac
+        mdir = ['/Applications/', mdir];
+    end
+    compiler.runtime.customInstaller("installMCR", [mdir '/requiredMCRProducts.txt'], RuntimeDelivery="web");
 end
 
 cd(cpath);

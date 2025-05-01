@@ -40,7 +40,7 @@ ip.addParameter('maxTrialNum', 3, @isnumeric);
 ip.addParameter('unitWaitTime', 3, @isnumeric);
 ip.addParameter('maxJobNum', inf, @isnumeric); % submit limited number of jobs (pending/running)
 ip.addParameter('taskBatchNum', 1, @isnumeric); % aggragate several tasks together
-ip.addParameter('MatlabLaunchStr', 'module load matlab/r2023a; matlab -nodisplay -nosplash -nodesktop -nojvm -r', @ischar);
+ip.addParameter('MatlabLaunchStr', 'module load matlab/r2024b; matlab -nodisplay -nosplash -nodesktop -nojvm -r', @ischar);
 ip.addParameter('BashLaunchStr', '', @ischar);
 ip.addParameter('SlurmParam', '-p abc --qos abc_normal -n1 --mem-per-cpu=21418M', @ischar);
 ip.addParameter('SlurmConstraint', '', @ischar);
@@ -360,6 +360,7 @@ while (~parseCluster && ~all(is_done_flag | trial_counter >= maxTrialNum, 'all')
                         end
                         if ~exist(func_str_dir, 'dir')
                             mkdir(func_str_dir);
+                            fileattrib(func_str_dir, '+w', 'g');
                         end
                         
                         if strcmpi(language, 'matlab')

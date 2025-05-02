@@ -26,8 +26,8 @@ ip.addParameter('tmpDir', '', @ischar);
 ip.addParameter('maxCPUNum', 24, @isnumeric);
 ip.addParameter('minCPUNum', 1, @isnumeric);
 ip.addParameter('cpusPerTask', 1, @isnumeric);
-ip.addParameter('MemPerCPU', 20.9, @isnumeric);
-ip.addParameter('MemAllocate', [], @isnumeric);
+ip.addParameter('memPerCPU', 20.9, @isnumeric);
+ip.addParameter('memAllocate', [], @isnumeric);
 ip.addParameter('wholeNodeJob', false, @islogical); % allocate a whole node for parallel computing
 ip.addParameter('uuid', '', @ischar);
 ip.addParameter('GPUJob', false, @islogical);
@@ -40,12 +40,12 @@ ip.addParameter('taskBatchNum', 1, @isnumeric); % aggragate several tasks togeth
 ip.addParameter('minBatchNum', 1, @isnumeric); % minimum batch size
 ip.addParameter('paraBatchNum', 1, @isnumeric); % number of parallel task batchs
 ip.addParameter('runExtraTasks', false, @islogical); % number of parallel task batchs
-ip.addParameter('MatlabLaunchStr', 'module load matlab/r2023a; matlab -nodisplay -nosplash -nodesktop -nojvm -r', @ischar);
+ip.addParameter('MatlabLaunchStr', 'module load matlab/r2024b; matlab -nodisplay -nosplash -nodesktop -nojvm -r', @ischar);
 ip.addParameter('BashLaunchStr', '', @ischar);
 ip.addParameter('SlurmParam', '-p abc --qos abc_normal -n1 --mem-per-cpu=21418M', @ischar);
 ip.addParameter('SlurmConstraint', '', @ischar);
 ip.addParameter('MCRCacheRoot', '/tmp/', @ischar);
-ip.addParameter('MCRParam', '/usr/local/MATLAB/R2023a', @ischar);
+ip.addParameter('MCRParam', '/usr/local/MATLAB/R2024b', @ischar);
 ip.addParameter('MCCMasterStr', '/home/xruan/Projects/XR_Repository/mcc/run_mccMaster.sh', @ischar);
 ip.addParameter('jobTimeLimit', 24, @isnumeric); % in hour, [] means no limit
 ip.addParameter('queryInterval', 3, @isnumeric); % in second, by default 3 s. 
@@ -104,8 +104,8 @@ tmpDir = pr.tmpDir;
 maxCPUNum = pr.maxCPUNum;
 minCPUNum = pr.minCPUNum;
 cpusPerTask = pr.cpusPerTask;
-MemPerCPU = pr.MemPerCPU;
-MemAllocate = pr.MemAllocate;
+memPerCPU = pr.memPerCPU;
+memAllocate = pr.memAllocate;
 wholeNodeJob = pr.wholeNodeJob; 
 uuid = pr.uuid;
 GPUJob = pr.GPUJob;
@@ -150,8 +150,8 @@ end
 
 switch clusterType
     case 'slurm'
-        if ~isempty(MemAllocate) && cpusPerTask * MemPerCPU < MemAllocate
-            cpusPerTask = ceil(MemAllocate / MemPerCPU);
+        if ~isempty(memAllocate) && cpusPerTask * memPerCPU < memAllocate
+            cpusPerTask = ceil(memAllocate / memPerCPU);
         end
         cpusPerTask = min(maxCPUNum, max(minCPUNum, cpusPerTask));
         % if cpu per task is less than half of max cpu num, round to a factor of the max cpu num

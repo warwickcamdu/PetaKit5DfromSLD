@@ -6,33 +6,66 @@ Modified version of PetaKit5D to read in the 3i Lattice Lightsheet Microscope Sl
 
 Authors: David Corcoran, Laura Cooper, Scott Brooks and Yara Aghabi
 
-## Options
+## Usage
 
-All the .sld files to be processed should be placed in the same folder. Each .sld file can contain multiple series (otherwise known as captures). Set the input folder to the folder containing the .sld files. Don't use "C0" or "C1" in the .sld filenames or anywhere in the pathname, otherwise it'll break. The input folder path needs to end in a backwards slash.
+Run ``` modularPipeline``` - Change to CAMDU_decon_wrapper
 
-```inputFolder = 'Z:\Shared243\sbrooks\2024-06-18\DeconPeta\';```
+A folder selector window will open, please select a folder containing solely your PSFs
+
+Your PSFs **MUST** be named in the following format:
+
+PSF_CH0.tif 
+
+PSF_CH1.tif
+
+Up to a maximum of 9. Your first channel will be CH0.
+
+We recommend that you include a readme file in this folder that documents any metadata lost in renaming the files i.e. Channel frequency/colour of PSFs.
 
 Within the input folder you need to have a PSF file for each channel in .tif format (not .tiff). The PSFs must be imaged using "sample scan" and with the same Z-spacing as the images (e.g. 0.5um). The metadata needs to be correct for the XYZ pixel spacing and the units written as "um" not "microns" (e.g. 0.104 um for XY and 0.5 um for Z). The image must cropped to contain only one bead.
 
-```PSF_C0 = '488_PSF.tif';```
-```PSF_C1 = '560_PSF.tif';```
+**TODO: Select PSF folder then allow user to pick which PSF corresponds to which channel order**
 
-Z step size (dz). Change to step size of acquisition.
+Once selected a second folder selector will open, please select the folder containing the input images.
 
-```dz = 0.5;```
+All the .sld files to be processed should be placed in the same folder (not within subfolders). Each .sld file can contain multiple series (otherwise known as captures). Set the input folder to the folder containing the .sld files. Don't use "C0" or "C1" in the .sld filenames or anywhere in the pathname, otherwise it'll break. 
 
-Choose a deconvolution method. Either 'omw' or the standard matlab richardson lucy 'simplified'.
 
-```RLmethod = 'simplified';```
+
+
+## Configuration
+
+**TODO: Put common settings into a UI**
+
+
+Processing mode: Choose 'deskew-only', 'decon+deskew', or 'both'.
+```config.processingMode = 'both';```
 
 Number of iterations for deconvolution. For omw use 2 iterations. All files and channels will be deconvolved with the same number of iterations.
 
-```DeconIter = 20;```
+```config.DeconIter = 20;```
 
 Wiener filter parameter for OMW deconvolution method alpha parameter should be adjusted based on SNR and data quality. Typically 0.002 - 0.01 for SNR ~20; 0.02 - 0.1 or higher for SNR ~7. This will take some tuning.
 
-```wienerAlpha = 0.05;```
+```config.wienerAlpha = 0.05;```
 
+Z step size (dz). Change to step size of acquisition.
+
+```config.dz = 0.5;```
+
+Choose a deconvolution method. Either 'omw' or the standard matlab richardson lucy 'simplified'.
+
+```config.RLmethod = 'simplified';```
+
+The rest of the settings in the config struct have been set by CAMDU staff at warwick for 3i LLSM data, if you are using a different instrument it is likely you will have to change more of these settings, which can be found in the config function.
+
+**TODO: change config to be a yaml file and provide users with a 3i or zeiss template or default then when you set common settings, select the yaml config**
+
+**TODO: save all settings/configuration as an audit trace**
+
+# Original PetaKit5D readme 
+
+This project is simply a wrapper for PetaKit5D, developed by x, please cite their original work also.
 
 # PetaKit5D
 
@@ -45,12 +78,12 @@ The software can also run on a single workstation for smaller-scale image proces
 
 ## Usage
 
-The tools have been tested with MATLAB R2022b-R2023a for Linux (Ubuntu 22.04), Windows (10 and 11), and MacOS (14). Toolboxes required:
+The tools have been tested with MATLAB R2023a-R2024b for Linux (Ubuntu 22.04, other distributions may also work), Windows (10 and 11), and MacOS (13 or newer). Toolboxes required:
 
 `Image Processing Toolbox, Optimization Toolbox, Parallel Computing Toolbox, Signal Processing Toolbox, and Statistics and Machine Learning Toolbox.`
 
  Here are the steps to use the software:
-1. Get the source code by either cloning the GitHub repository or downloading the ZIP file. If downloading the zip file, unzip the file to a directory.
+1. Downloading the lastest [release](https://github.com/abcucberkeley/PetaKit5D/releases) (preferred) for your OS or cloning the source code from GitHub repository or downloading the ZIP file. If downloading the zip file, unzip the file to a directory. If you clone the source code or download the ZIP file and need MCC runtime, you must first compile it by executing `compile_mccMaster.m` in MATLAB.
 2. Launch MATLAB, navigate to the software's root directory, and add the software to the path with `setup.m` in the command window.
 ````
    setup

@@ -100,6 +100,14 @@ function modularPipeline(psfFolder, inputFolder)
             seriesResult = processTifFolder(config);
             if isempty(seriesResult)
                  error('No valid TIFF series found in %s', config.inputFolder);
+            else
+                if strcmp(config.processingMode, 'decon+deskew') || strcmp(config.processingMode, 'both')
+                    runDeconDeskewPipeline(seriesResult, config);
+                end
+                if strcmp(config.processingMode, 'deskew-only') || strcmp(config.processingMode, 'both')
+                    runDeskewOnlyPipeline(seriesResult, config);
+                end
+                deleteIntermediateFiles(seriesResult.tifDir, config);
             end
         else
             % No matching files, do something else
@@ -109,14 +117,6 @@ function modularPipeline(psfFolder, inputFolder)
                 processSldFile(filepath, config);
             end
         end
-         
-         if strcmp(config.processingMode, 'decon+deskew') || strcmp(config.processingMode, 'both')
-             runDeconDeskewPipeline(seriesResult, config);
-         end
-         if strcmp(config.processingMode, 'deskew-only') || strcmp(config.processingMode, 'both')
-             runDeskewOnlyPipeline(seriesResult, config);
-         end
-         deleteIntermediateFiles(seriesResult.tifDir, config);
     else
          error('No .sld or .tif files found in folder %s', config.inputFolder);
     end

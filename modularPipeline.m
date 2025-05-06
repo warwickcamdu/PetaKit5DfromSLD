@@ -72,6 +72,7 @@ function modularPipeline(psfFolder, inputFolder)
     % Determine if the input folder contains .sld or .tif files.
     sldFiles = dir(fullfile(config.inputFolder, '*.sld'));
     allTifFiles = dir(fullfile(config.inputFolder, '*.tif'));
+    allTifFiles = allTifFiles(~[allTifFiles.isdir]);
     
     if ~isempty(sldFiles)
          % Process each SLD file.
@@ -226,22 +227,29 @@ function seriesResult = convertSeriesToTif(r, seriesIndex, sldFileName, config)
         return;
     end
     
+    if endsWith(sldFileName, {'.tif', '.tiff'}, 'IgnoreCase', true)
+        fullarray=readtiff_parallel(sldFileName);
+    end
     % Loop through timepoints and channels.
     for T = 0:stackSizeT-1
         for C = 0:stackSizeC-1
             array = [];
             count = 1;
             %For .sld do this. For .tif do something faster
-            for Z = 0:stackSizeZ-1
-                plane = bfGetPlane(r, r.getIndex(Z, C, T) + 1);
-                array(:, :, count) = double(plane);
-                count = count + 1;
-                plane_count = plane_count + 1;
-                if plane_count == int32(stackSizeZ * stackSizeC) + 1
-                    frameInterval = omeMeta.getPlaneDeltaT(seriesIndex, plane_count).value().doubleValue()/1000;
-                    firstframeInterval = omeMeta.getPlaneDeltaT(seriesIndex, 0).value().doubleValue()/1000;
-                    frameInterval = frameInterval - firstframeInterval;
+            if endsWith(sldFileName, '.sld', 'IgnoreCase', true)
+                for Z = 0:stackSizeZ-1
+                    plane = bfGetPlane(r, r.getIndex(Z, C, T) + 1);
+                    array(:, :, count) = double(plane);
+                    count = count + 1;
+                    plane_count = plane_count + 1;
+                    if plane_count == int32(stackSizeZ * stackSizeC) + 1
+                        frameInterval = omeMeta.getPlaneDeltaT(seriesIndex, plane_count).value().doubleValue()/1000;
+                        firstframeInterval = omeMeta.getPlaneDeltaT(seriesIndex, 0).value().doubleValue()/1000;
+                        frameInterval = frameInterval - firstframeInterval;
+                    end
                 end
+            elseif endsWith(sldFileName, {'.tif', '.tiff'}, 'IgnoreCase', true)
+                array=fullarray(:,:,(C+1):stackSizeC:2*stackSizeZ*(T+1));
             end
             
             outputArray = uint16(array(:, :, 1:stackSizeZ));

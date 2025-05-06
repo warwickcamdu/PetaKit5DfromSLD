@@ -71,7 +71,7 @@ function modularPipeline(psfFolder, inputFolder)
     %% --- Process the Input Data ---
     % Determine if the input folder contains .sld or .tif files.
     sldFiles = dir(fullfile(config.inputFolder, '*.sld'));
-    tifFiles = dir(fullfile(config.inputFolder, '*.tif'));
+    allTifFiles = dir(fullfile(config.inputFolder, '*.tif'));
     
     if ~isempty(sldFiles)
          % Process each SLD file.
@@ -79,12 +79,36 @@ function modularPipeline(psfFolder, inputFolder)
              sldFullPath = fullfile(sldFiles(i).folder, sldFiles(i).name);
              processSldFile(sldFullPath, config);
          end
-    elseif ~isempty(tifFiles)
-         % Assume the folder contains raw TIFF files.
-         seriesResult = processTifFolder(config);
-         if isempty(seriesResult)
-             error('No valid TIFF series found in %s', config.inputFolder);
+    elseif ~isempty(allTifFiles)
+         % Pattern to match _T<number>_Ch<number>
+         pattern = '_T\d+_Ch\d+';
+
+         % Filter TIF files that match the pattern
+         tifFiles = [];
+         for i = 1:length(allTifFiles)
+            filename = allTifFiles(i).name;
+            if ~isempty(regexp(filename, pattern, 'once'))
+                tifFiles = [tifFiles; allTifFiles(i)];  % Append matching file
+            end
          end
+
+        if ~isempty(tifFiles)
+            % Only process matching TIF files
+            filePaths = fullfile({tifFiles.folder}, {tifFiles.name});
+            disp('Processing series of 3D TIF files...');
+            seriesResult = processTifFolder(config);
+            if isempty(seriesResult)
+                 error('No valid TIFF series found in %s', config.inputFolder);
+            end
+        else
+            % No matching files, do something else
+            disp('Processing Tif files...');
+            for i = 1:length(allTifFiles)
+                filepath = fullfile(allTifFiles.folder,allTifFiles(i).name);
+                processSldFile(filepath, config);
+            end
+        end
+         
          if strcmp(config.processingMode, 'decon+deskew') || strcmp(config.processingMode, 'both')
              runDeconDeskewPipeline(seriesResult, config);
          end
@@ -103,11 +127,17 @@ function processSldFile(sldFileName, config)
     % Open the .sld file using Bio-Formats.
     r = bfGetReader(sldFileName);
     omeMeta = r.getMetadataStore();
-    nSeries = r.getSeriesCount();
+    if endsWith(sldFileName, '.sld', 'IgnoreCase', true)
+        nSeries = r.getSeriesCount();
+    else
+        nSeries=1;
+    end
     
     % Process each series in the .sld file.
     for S = 0:nSeries-1
+        if endsWith(sldFileName, '.sld', 'IgnoreCase', true)
         r.setSeries(S);
+        end
         seriesResult = convertSeriesToTif(r, S, sldFileName, config);
         if isempty(seriesResult)
             continue;  % Skip series with only one Z-slice.
@@ -201,6 +231,7 @@ function seriesResult = convertSeriesToTif(r, seriesIndex, sldFileName, config)
         for C = 0:stackSizeC-1
             array = [];
             count = 1;
+            %For .sld do this. For .tif do something faster
             for Z = 0:stackSizeZ-1
                 plane = bfGetPlane(r, r.getIndex(Z, C, T) + 1);
                 array(:, :, count) = double(plane);

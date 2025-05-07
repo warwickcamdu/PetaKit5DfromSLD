@@ -13,7 +13,7 @@ function modularPipeline()
         error('No PSF folder selected.');
     end
     
-    inputFolder = uigetdir([], 'Select the folder containing files to deconvolve (SLD or TIFF)');
+    inputFolder = uigetdir([], 'Select the folder containing files to deconvolve (SLD, CZI or TIFF)');
     if inputFolder == 0
         error('No input folder selected.');
     end
@@ -65,6 +65,7 @@ function modularPipeline()
     
     %% --- Process the Input Data ---
     % Determine if the input folder contains .sld, .czi or .tif files.
+    sldyFiles = dir(fullfile(config.inputFolder, '*.sldy'));
     sldFiles = dir(fullfile(config.inputFolder, '*.sld'));
     allTifFiles = dir(fullfile(config.inputFolder, '*.tif'));
     allTifFiles = allTifFiles(~[allTifFiles.isdir]);
@@ -83,6 +84,12 @@ function modularPipeline()
         for i=1:length(cziFiles)
             cziFullPath = fullfile(cziFiles(i).folder, cziFiles(i).name);
             processSldFile(cziFullPath, config);
+        end
+    elseif ~isempty(sldyFiles)
+        %Process each SLDY file
+        for i=1:length(sldyFiles)
+            sldyFullPath = fullfile(sldyFiles(i).folder, sldyFiles(i).name);
+            processSldFile(sldyFullPath, config);
         end
     elseif ~isempty(allTifFiles)
          % Pattern to match _T<number>_Ch<number>
@@ -132,7 +139,7 @@ function processSldFile(sldFileName, config)
     % Open the .sld file using Bio-Formats.
     r = bfGetReader(sldFileName);
     omeMeta = r.getMetadataStore();
-    if endsWith(sldFileName, '.sld', 'IgnoreCase', true)
+    if endsWith(sldFileName, {'.sld','.sldy'}, 'IgnoreCase', true)
         nSeries = r.getSeriesCount();
     else
         nSeries=1;
@@ -140,7 +147,7 @@ function processSldFile(sldFileName, config)
     
     % Process each series in the .sld file.
     for S = 0:nSeries-1
-        if endsWith(sldFileName, '.sld', 'IgnoreCase', true)
+        if endsWith(sldFileName, {'.sld','.sldy'}, 'IgnoreCase', true)
         r.setSeries(S);
         end
         seriesResult = convertSeriesToTif(r, S, sldFileName, config);
@@ -240,7 +247,7 @@ function seriesResult = convertSeriesToTif(r, seriesIndex, sldFileName, config)
             array = [];
             count = 1;
             
-            if endsWith(sldFileName, {'.sld','.czi'}, 'IgnoreCase', true)
+            if endsWith(sldFileName, {'.sld','.sldy','.czi'}, 'IgnoreCase', true)
                 for Z = 0:stackSizeZ-1
                     plane = bfGetPlane(r, r.getIndex(Z, C, T) + 1);
                     array(:, :, count) = double(plane);

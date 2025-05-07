@@ -64,10 +64,11 @@ function modularPipeline()
     fprintf('Processing files in folder: %s\n', config.inputFolder);
     
     %% --- Process the Input Data ---
-    % Determine if the input folder contains .sld or .tif files.
+    % Determine if the input folder contains .sld, .czi or .tif files.
     sldFiles = dir(fullfile(config.inputFolder, '*.sld'));
     allTifFiles = dir(fullfile(config.inputFolder, '*.tif'));
     allTifFiles = allTifFiles(~[allTifFiles.isdir]);
+    cziFiles = dir(fullfile(config.inputFolder, '*.czi'));
     
     if ~isempty(sldFiles)
          % Process each SLD file.
@@ -75,6 +76,14 @@ function modularPipeline()
              sldFullPath = fullfile(sldFiles(i).folder, sldFiles(i).name);
              processSldFile(sldFullPath, config);
          end
+    elseif ~isempty(cziFiles)
+        %default czi config
+        config = getCziDefaultConfig(config);
+        %Process each CZI file
+        for i=1:length(cziFiles)
+            cziFullPath = fullfile(cziFiles(i).folder, cziFiles(i).name);
+            processSldFile(cziFullPath, config);
+        end
     elseif ~isempty(allTifFiles)
          % Pattern to match _T<number>_Ch<number>
          pattern = '_T\d+_Ch\d+';
@@ -230,8 +239,8 @@ function seriesResult = convertSeriesToTif(r, seriesIndex, sldFileName, config)
         for C = 0:stackSizeC-1
             array = [];
             count = 1;
-            %For .sld do this. For .tif do something faster
-            if endsWith(sldFileName, '.sld', 'IgnoreCase', true)
+            
+            if endsWith(sldFileName, {'.sld','.czi'}, 'IgnoreCase', true)
                 for Z = 0:stackSizeZ-1
                     plane = bfGetPlane(r, r.getIndex(Z, C, T) + 1);
                     array(:, :, count) = double(plane);
@@ -476,4 +485,10 @@ function config = getDefaultConfig()
     % Output folder names.
     config.resultDirName = 'deconvolved';       % For deconvolution+deskew branch.
     config.resultDirNameDeskew = 'DS';   % For deskew-only branch.
+end
+
+function config = getCziDefaultConfig(config)
+    config.xyPixelSize = 0.1449922;
+    config.skewAngle = 32.8;
+    config.flipZstack = false;
 end

@@ -127,10 +127,14 @@ function modularPipeline(psfFolder, inputFolder)
             end
         else
             % No matching files, do something else
+            % ignore files with ending
+            ignoreSuffixes = {'_decon.tif', '_deskew.tif', '_MAX.tif'};
             disp('Processing Tif files...');
             for i = 1:length(allTifFiles)
-                filepath = fullfile(allTifFiles.folder,allTifFiles(i).name);
-                processSldFile(filepath, config);
+                if ~endsWith(allTifFiles(i).name,ignoreSuffixes,"IgnoreCase",true)
+                    filepath = fullfile(allTifFiles(i).folder,allTifFiles(i).name);
+                    processSldFile(filepath, config);
+                end
             end
         end
     else
@@ -219,13 +223,19 @@ function seriesResult = convertSeriesToTif(r, seriesIndex, sldFileName, config)
     plane_count = 0;
     
     % Create an output folder based on the series.
+    
     seriesName = char(omeMeta.getImageName(seriesIndex));
     [~, baseFileName, ~] = fileparts(sldFileName);
+    if endsWith(sldFileName, {'.sld','.sldy'}, 'IgnoreCase', true)
     seriesNameNoSpaces = strrep(seriesName, ' ', '_');
     currentSeriesFolder = [baseFileName, '_', seriesNameNoSpaces];
     currentSeriesPath = fullfile(config.inputFolder, currentSeriesFolder);
     if ~exist(currentSeriesPath, 'dir')
         mkdir(currentSeriesPath);
+    end
+    else
+        currentSeriesFolder=baseFileName;
+        currentSeriesPath = fullfile(config.inputFolder, currentSeriesFolder);
     end
     tifDir = fullfile(currentSeriesPath, 'tifs');
     if ~exist(tifDir, 'dir')
@@ -362,10 +372,10 @@ function runDeconDeskewPipeline(seriesResult, config)
     removePaddingFromDir(deconDSDir, config);
     
     % Merge the deconvolved+deskewed images.
-    outputTiffFile = fullfile(config.inputFolder, [seriesResult.currentSeriesFolder, '.tif']);
+    outputTiffFile = fullfile(config.inputFolder, [seriesResult.currentSeriesFolder, '_decon.tif']);
     paraMergeTiffFilesToMultiDimStack(deconDSDir, outputTiffFile, seriesResult.pixelSizeX, seriesResult.deskewedZSpacing, seriesResult.frameInterval);
     
-    outputTiffFileMax = fullfile(config.inputFolder, [seriesResult.currentSeriesFolder, '_MAX.tif']);
+    outputTiffFileMax = fullfile(config.inputFolder, [seriesResult.currentSeriesFolder, '_decon_MAX.tif']);
     inputToMergeMax = fullfile(deconDSDir, 'MIPs');
     paraMergeMaxToStack(inputToMergeMax, outputTiffFileMax, seriesResult.pixelSizeX, seriesResult.frameInterval);
 end

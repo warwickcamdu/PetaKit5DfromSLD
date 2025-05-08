@@ -13,7 +13,7 @@ function modularPipeline()
         error('No PSF folder selected.');
     end
     
-    inputFolder = uigetdir([], 'Select the folder containing files to deconvolve (SLD or TIFF)');
+    inputFolder = uigetdir([], 'Select the folder containing files to deconvolve (SLD, CZI or TIFF)');
     if inputFolder == 0
         error('No input folder selected.');
     end
@@ -56,6 +56,9 @@ function modularPipeline()
         % Create a channel pattern (e.g. 'Ch1', 'Ch2', ...).
         config.ChannelPatterns{i} = ['Ch' num2str(psfArray(i).channel)];
     end
+    % get size Metadata - assuming same for all PSF channels
+    r=bfGetReader(psfArray(1).fullpath);
+    psf_metadata = getSizeMetadata(r,0);
 
     fprintf('Selected PSF files:\n');
     disp(config.PSFFullpaths);
@@ -64,29 +67,82 @@ function modularPipeline()
     fprintf('Processing files in folder: %s\n', config.inputFolder);
     
     %% --- Process the Input Data ---
-    % Determine if the input folder contains .sld or .tif files.
+    % Determine if the input folder contains .sld, .czi or .tif files.
+    sldyFiles = dir(fullfile(config.inputFolder, '*.sldy'));
     sldFiles = dir(fullfile(config.inputFolder, '*.sld'));
-    tifFiles = dir(fullfile(config.inputFolder, '*.tif'));
+    allTifFiles = dir(fullfile(config.inputFolder, '*.tif'));
+    allTifFiles = allTifFiles(~[allTifFiles.isdir]);
+    cziFiles = dir(fullfile(config.inputFolder, '*.czi'));
     
     if ~isempty(sldFiles)
          % Process each SLD file.
          for i = 1:length(sldFiles)
              sldFullPath = fullfile(sldFiles(i).folder, sldFiles(i).name);
-             processSldFile(sldFullPath, config);
+             processSldFile(sldFullPath, config, psf_metadata);
          end
-    elseif ~isempty(tifFiles)
-         % Assume the folder contains raw TIFF files.
-         seriesResult = processTifFolder(config);
-         if isempty(seriesResult)
-             error('No valid TIFF series found in %s', config.inputFolder);
+    elseif ~isempty(cziFiles)
+        %default czi config
+        config = getCziDefaultConfig(config);
+        %Process each CZI file
+        for i=1:length(cziFiles)
+            cziFullPath = fullfile(cziFiles(i).folder, cziFiles(i).name);
+            processSldFile(cziFullPath, config, psf_metadata);
+        end
+    elseif ~isempty(sldyFiles)
+        %Process each SLDY file
+        for i=1:length(sldyFiles)
+            sldyFullPath = fullfile(sldyFiles(i).folder, sldyFiles(i).name);
+            processSldFile(sldyFullPath, config, psf_metadata);
+        end
+    elseif ~isempty(allTifFiles)
+         % Pattern to match _T<number>_Ch<number>
+         pattern = '_T\d+_Ch\d+';
+
+         % Filter TIF files that match the pattern
+         tifFiles = [];
+         for i = 1:length(allTifFiles)
+            filename = allTifFiles(i).name;
+            if ~isempty(regexp(filename, pattern, 'once'))
+                tifFiles = [tifFiles; allTifFiles(i)];  % Append matching file
+            end
          end
-         if strcmp(config.processingMode, 'decon+deskew') || strcmp(config.processingMode, 'both')
-             runDeconDeskewPipeline(seriesResult, config);
-         end
-         if strcmp(config.processingMode, 'deskew-only') || strcmp(config.processingMode, 'both')
-             runDeskewOnlyPipeline(seriesResult, config);
-         end
-         deleteIntermediateFiles(seriesResult.tifDir, config);
+
+        if ~isempty(tifFiles)
+            % Only process matching TIF files
+            filePaths = fullfile({tifFiles.folder}, {tifFiles.name});
+            disp('Processing series of 3D TIF files...');
+            %assume all tifs have same metadata
+            seriesResult = processTifFolder(config);
+
+            if isempty(seriesResult)
+                 error('No valid TIFF series found in %s', config.inputFolder);
+            end
+
+                if strcmp(config.processingMode, 'decon+deskew') || strcmp(config.processingMode, 'both')
+                    r=bfGetReader(filePaths{1});
+                    tif3D_metadata = getSizeMetadata(r,0);
+                    if (tif3D_metadata.pixelSizeZ == psf_metadata.pixelSizeZ)
+                        runDeconDeskewPipeline(seriesResult, config);
+                    else
+                        warning('Skipping series %d Z spacing does not match PSF.', 0);
+                    end
+                end
+                if strcmp(config.processingMode, 'deskew-only') || strcmp(config.processingMode, 'both')
+                    runDeskewOnlyPipeline(seriesResult, config);
+                end
+                deleteIntermediateFiles(seriesResult.tifDir, config);
+        else
+            % No matching files, do something else
+            % ignore files with ending
+            ignoreSuffixes = {'_decon.tif', '_deskew.tif', '_MAX.tif','_decondeskew.tif'};
+            disp('Processing Tif files...');
+            for i = 1:length(allTifFiles)
+                if ~endsWith(allTifFiles(i).name,ignoreSuffixes,"IgnoreCase",true)
+                    filepath = fullfile(allTifFiles(i).folder,allTifFiles(i).name);
+                    processSldFile(filepath, config, psf_metadata);
+                end
+            end
+        end
     else
          error('No .sld or .tif files found in folder %s', config.inputFolder);
     end
@@ -94,23 +150,34 @@ end
 
 %% -----------------------------------------------------------------------
 %% Local Function: processSldFile
-function processSldFile(sldFileName, config)
+function processSldFile(sldFileName, config, psf_metadata)
     % Open the .sld file using Bio-Formats.
     r = bfGetReader(sldFileName);
-    omeMeta = r.getMetadataStore();
-    nSeries = r.getSeriesCount();
+    if endsWith(sldFileName, {'.sld','.sldy'}, 'IgnoreCase', true)
+        nSeries = r.getSeriesCount();
+    else
+        nSeries=1;
+    end
     
     % Process each series in the .sld file.
     for S = 0:nSeries-1
-        r.setSeries(S);
-        seriesResult = convertSeriesToTif(r, S, sldFileName, config);
+        if endsWith(sldFileName, {'.sld','.sldy'}, 'IgnoreCase', true)
+            r.setSeries(S);
+        end
+        seriesResult = convertSeriesToTif(r, S, sldFileName, config, psf_metadata);
         if isempty(seriesResult)
             continue;  % Skip series with only one Z-slice.
         end
         
         if strcmp(config.processingMode, 'decon+deskew') || strcmp(config.processingMode, 'both')
-            runDeconDeskewPipeline(seriesResult, config);
+            size_metadata = getSizeMetadata(r,S);    
+            if (size_metadata.pixelSizeZ == psf_metadata.pixelSizeZ)
+                runDeconDeskewPipeline(seriesResult, config);
+            else
+                warning('Skipping series %d Z spacing does not match PSF.', S);
+            end         
         end
+
         if strcmp(config.processingMode, 'deskew-only') || strcmp(config.processingMode, 'both')
             runDeskewOnlyPipeline(seriesResult, config);
         end
@@ -120,48 +187,12 @@ end
 
 %% -----------------------------------------------------------------------
 %% Local Function: convertSeriesToTif
-function seriesResult = convertSeriesToTif(r, seriesIndex, sldFileName, config)
+function seriesResult = convertSeriesToTif(r, seriesIndex, sldFileName, config, psf_metadata)
+    size_metadata = getSizeMetadata(r,seriesIndex);
     omeMeta = r.getMetadataStore();
-    % Extract image dimensions.
-    stackSizeX = omeMeta.getPixelsSizeX(seriesIndex).getValue();
-    stackSizeY = omeMeta.getPixelsSizeY(seriesIndex).getValue();
-    stackSizeZ = omeMeta.getPixelsSizeZ(seriesIndex).getValue();
-    stackSizeC = omeMeta.getPixelsSizeC(seriesIndex).getValue();
-    stackSizeT = omeMeta.getPixelsSizeT(seriesIndex).getValue();
-    
-    % Get physical pixel sizes. If unavailable (or NaN) then substitute defaults from config.
-    pixelSizeX_obj = omeMeta.getPixelsPhysicalSizeX(seriesIndex);
-    if isempty(pixelSizeX_obj)
-        pixelSizeX = config.xyPixelSize;
-    else
-        pixelSizeX = double(pixelSizeX_obj.value());
-        if isnan(pixelSizeX)
-            pixelSizeX = config.xyPixelSize;
-        end
-    end
-    
-    pixelSizeY_obj = omeMeta.getPixelsPhysicalSizeY(seriesIndex);
-    if isempty(pixelSizeY_obj)
-        pixelSizeY = config.xyPixelSize;
-    else
-        pixelSizeY = double(pixelSizeY_obj.value());
-        if isnan(pixelSizeY)
-            pixelSizeY = config.xyPixelSize;
-        end
-    end
-    
-    pixelSizeZ_obj = omeMeta.getPixelsPhysicalSizeZ(seriesIndex);
-    if isempty(pixelSizeZ_obj)
-        pixelSizeZ = config.dz;
-    else
-        pixelSizeZ = double(pixelSizeZ_obj.value());
-        if isnan(pixelSizeZ)
-            pixelSizeZ = config.dz;
-        end
-    end
     
     % Calculate the deskewed Z spacing using the Z spacing value.
-    deskewedZSpacing = sin(deg2rad(config.skewAngle)) * pixelSizeZ;
+    deskewedZSpacing = sin(deg2rad(config.skewAngle)) * size_metadata.pixelSizeZ;
     
     frameInterval = 0;
     plane_count = 0;
@@ -169,11 +200,16 @@ function seriesResult = convertSeriesToTif(r, seriesIndex, sldFileName, config)
     % Create an output folder based on the series.
     seriesName = char(omeMeta.getImageName(seriesIndex));
     [~, baseFileName, ~] = fileparts(sldFileName);
+    if endsWith(sldFileName, {'.sld','.sldy'}, 'IgnoreCase', true)
     seriesNameNoSpaces = strrep(seriesName, ' ', '_');
     currentSeriesFolder = [baseFileName, '_', seriesNameNoSpaces];
     currentSeriesPath = fullfile(config.inputFolder, currentSeriesFolder);
     if ~exist(currentSeriesPath, 'dir')
         mkdir(currentSeriesPath);
+    end
+    else
+        currentSeriesFolder=baseFileName;
+        currentSeriesPath = fullfile(config.inputFolder, currentSeriesFolder);
     end
     tifDir = fullfile(currentSeriesPath, 'tifs');
     if ~exist(tifDir, 'dir')
@@ -181,34 +217,41 @@ function seriesResult = convertSeriesToTif(r, seriesIndex, sldFileName, config)
     end
     
     fprintf('Series %d: Dimensions (X,Y,Z,C,T) = (%d,%d,%d,%d,%d)\n', ...
-             seriesIndex, stackSizeX, stackSizeY, stackSizeZ, stackSizeC, stackSizeT);
+             seriesIndex, size_metadata.stackSizeX, size_metadata.stackSizeY, size_metadata.stackSizeZ, size_metadata.stackSizeC, size_metadata.stackSizeT);
     fprintf('Pixel Size (X,Y): (%.3f, %.3f) um, Z Spacing: %.2f um, Deskewed Z Spacing: %.3f um\n', ...
-             pixelSizeX, pixelSizeY, pixelSizeZ, deskewedZSpacing);
+             size_metadata.pixelSizeX, size_metadata.pixelSizeY, size_metadata.pixelSizeZ, deskewedZSpacing);
     
-    if stackSizeZ <= 1
+    if size_metadata.stackSizeZ <= 1
         warning('Skipping series %d as it contains only one Z-slice.', seriesIndex);
         seriesResult = [];
         return;
     end
     
+    if endsWith(sldFileName, {'.tif', '.tiff'}, 'IgnoreCase', true)
+        fullarray=readtiff_parallel(sldFileName);
+    end
     % Loop through timepoints and channels.
-    for T = 0:stackSizeT-1
-        for C = 0:stackSizeC-1
+    for T = 0:size_metadata.stackSizeT-1
+        for C = 0:size_metadata.stackSizeC-1
             array = [];
             count = 1;
-            for Z = 0:stackSizeZ-1
-                plane = bfGetPlane(r, r.getIndex(Z, C, T) + 1);
-                array(:, :, count) = double(plane);
-                count = count + 1;
-                plane_count = plane_count + 1;
-                if plane_count == int32(stackSizeZ * stackSizeC) + 1
-                    frameInterval = omeMeta.getPlaneDeltaT(seriesIndex, plane_count).value().doubleValue()/1000;
-                    firstframeInterval = omeMeta.getPlaneDeltaT(seriesIndex, 0).value().doubleValue()/1000;
-                    frameInterval = frameInterval - firstframeInterval;
+            if endsWith(sldFileName, {'.sld','.sldy','.czi'}, 'IgnoreCase', true)
+                for Z = 0:size_metadata.stackSizeZ-1
+                    plane = bfGetPlane(r, r.getIndex(Z, C, T) + 1);
+                    array(:, :, count) = double(plane);
+                    count = count + 1;
+                    plane_count = plane_count + 1;
+                    if plane_count == int32(size_metadata.stackSizeZ * size_metadata.stackSizeC) + 1
+                        frameInterval = omeMeta.getPlaneDeltaT(seriesIndex, plane_count).value().doubleValue()/1000;
+                        firstframeInterval = omeMeta.getPlaneDeltaT(seriesIndex, 0).value().doubleValue()/1000;
+                        frameInterval = frameInterval - firstframeInterval;
+                    end
                 end
+            elseif endsWith(sldFileName, {'.tif', '.tiff'}, 'IgnoreCase', true)
+                array=fullarray(:,:,(C+1):size_metadata.stackSizeC:2*size_metadata.stackSizeZ*(T+1));
             end
             
-            outputArray = uint16(array(:, :, 1:stackSizeZ));
+            outputArray = uint16(array(:, :, 1:size_metadata.stackSizeZ));
             outputArray = applyZPadding(outputArray, config);
             
             strS = num2str(seriesIndex);
@@ -223,9 +266,50 @@ function seriesResult = convertSeriesToTif(r, seriesIndex, sldFileName, config)
     seriesResult.currentSeriesFolder = currentSeriesFolder;
     seriesResult.currentSeriesPath = currentSeriesPath;
     seriesResult.frameInterval = frameInterval;
-    seriesResult.pixelSizeX = pixelSizeX;
-    seriesResult.pixelSizeY = pixelSizeY;
+    seriesResult.pixelSizeX = size_metadata.pixelSizeX;
+    seriesResult.pixelSizeY = size_metadata.pixelSizeY;
     seriesResult.deskewedZSpacing = deskewedZSpacing;
+end
+
+function size_metadata = getSizeMetadata(r, seriesIndex)
+    omeMeta = r.getMetadataStore();
+    % Extract image dimensions.
+    size_metadata.stackSizeX = omeMeta.getPixelsSizeX(seriesIndex).getValue();
+    size_metadata.stackSizeY = omeMeta.getPixelsSizeY(seriesIndex).getValue();
+    size_metadata.stackSizeZ = omeMeta.getPixelsSizeZ(seriesIndex).getValue();
+    size_metadata.stackSizeC = omeMeta.getPixelsSizeC(seriesIndex).getValue();
+    size_metadata.stackSizeT = omeMeta.getPixelsSizeT(seriesIndex).getValue();
+    
+    % Get physical pixel sizes. If unavailable (or NaN) then substitute defaults from config.
+    pixelSizeX_obj = omeMeta.getPixelsPhysicalSizeX(seriesIndex);
+    if isempty(pixelSizeX_obj)
+        size_metadata.pixelSizeX = config.xyPixelSize;
+    else
+        size_metadata.pixelSizeX = double(pixelSizeX_obj.value());
+        if isnan(size_metadata.pixelSizeX)
+            size_metadata.pixelSizeX = config.xyPixelSize;
+        end
+    end
+    
+    pixelSizeY_obj = omeMeta.getPixelsPhysicalSizeY(seriesIndex);
+    if isempty(pixelSizeY_obj)
+        size_metadata.pixelSizeY = config.xyPixelSize;
+    else
+        size_metadata.pixelSizeY = double(pixelSizeY_obj.value());
+        if isnan(size_metadata.pixelSizeY)
+            size_metadata.pixelSizeY = config.xyPixelSize;
+        end
+    end
+    
+    pixelSizeZ_obj = omeMeta.getPixelsPhysicalSizeZ(seriesIndex);
+    if isempty(pixelSizeZ_obj)
+        size_metadata.pixelSizeZ = config.dz;
+    else
+        size_metadata.pixelSizeZ = double(pixelSizeZ_obj.value());
+        if isnan(size_metadata.pixelSizeZ)
+            size_metadata.pixelSizeZ = config.dz;
+        end
+    end
 end
 
 %% -----------------------------------------------------------------------
@@ -302,10 +386,10 @@ function runDeconDeskewPipeline(seriesResult, config)
     removePaddingFromDir(deconDSDir, config);
     
     % Merge the deconvolved+deskewed images.
-    outputTiffFile = fullfile(config.inputFolder, [seriesResult.currentSeriesFolder, '.tif']);
+    outputTiffFile = fullfile(config.inputFolder, [seriesResult.currentSeriesFolder, '_decondeskew.tif']);
     paraMergeTiffFilesToMultiDimStack(deconDSDir, outputTiffFile, seriesResult.pixelSizeX, seriesResult.deskewedZSpacing, seriesResult.frameInterval);
     
-    outputTiffFileMax = fullfile(config.inputFolder, [seriesResult.currentSeriesFolder, '_MAX.tif']);
+    outputTiffFileMax = fullfile(config.inputFolder, [seriesResult.currentSeriesFolder, '_decondeskew_MAX.tif']);
     inputToMergeMax = fullfile(deconDSDir, 'MIPs');
     paraMergeMaxToStack(inputToMergeMax, outputTiffFileMax, seriesResult.pixelSizeX, seriesResult.frameInterval);
 end
@@ -437,4 +521,10 @@ function config = getDefaultConfig()
     % Output folder names.
     config.resultDirName = 'deconvolved';       % For deconvolution+deskew branch.
     config.resultDirNameDeskew = 'DS';   % For deskew-only branch.
+end
+
+function config = getCziDefaultConfig(config)
+    config.xyPixelSize = 0.1449922;
+    config.skewAngle = 32.8;
+    config.flipZstack = false;
 end

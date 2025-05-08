@@ -16,4 +16,5 @@ tests/data/Inputs/sld/*.tif
 tests/data/Inputs/sld/*/
 tests/data/Inputs/sldy/*.tif
 tests/data/Inputs/sldy/*/
-
+C:\\Java_SBReadFileJNI_openFile.txt
+tests/C:\\Java_SBReadFileJNI_openFile.txt

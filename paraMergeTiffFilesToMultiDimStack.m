@@ -15,8 +15,6 @@ function paraMergeTiffFilesToMultiDimStack(inputFolder, outputFilePath, xySpacin
 
     % Pre-read filenames to determine the dimensions of the stack
     fprintf('Pre-reading filenames to determine stack dimensions...\n');
-    timePoints = [];
-    channels = [];
     
     % Determine the stack dimensions based on the first file
     baseFileName = tiffFiles(1).name;
@@ -24,23 +22,29 @@ function paraMergeTiffFilesToMultiDimStack(inputFolder, outputFilePath, xySpacin
     image = readtiff_parallel(fullFileName);
     [stackSizeY, stackSizeX, stackSizeZ] = size(image);
 
-    % Extract time point and channel from each filename
-    for k = 1:length(tiffFiles)
-        tokens = regexp(tiffFiles(k).name, '.*_T(\d+)_Ch(\d+).tif', 'tokens');
-        if isempty(tokens)
-            error('Filename format does not match the expected pattern.');
-        end
-        
-        timePoint = str2double(tokens{1}{1});
-        channel = str2double(tokens{1}{2});
-        
-        timePoints = [timePoints, timePoint];
-        channels = [channels, channel];
+fileMeta = struct('name', {}, 'T', {}, 'Ch', {});
+for k = 1:length(tiffFiles)
+    tokens = regexp(tiffFiles(k).name, '.*_T(\d+)_Ch(\d+).tif', 'tokens');
+    if isempty(tokens)
+        error('Filename format does not match the expected pattern: %s', tiffFiles(k).name);
     end
 
+    timePoint = str2double(tokens{1}{1});
+    channel = str2double(tokens{1}{2});
+
+    fileMeta(end+1).name = tiffFiles(k).name; %#ok<AGROW>
+    fileMeta(end).T = timePoint;
+    fileMeta(end).Ch = channel;
+end
+
+    %Sort files
+    [~, sortIdx] = sortrows([[fileMeta.T]', [fileMeta.Ch]']);
+    fileMeta = fileMeta(sortIdx);
     % Determine the number of time points and channels
-    numTimePoints = max(timePoints) + 1;
-    numChannels = max(channels) + 1;
+    allT = [fileMeta.T];
+allCh = [fileMeta.Ch];
+numTimePoints = max(allT) + 1;
+numChannels = max(allCh) + 1;
 
     fprintf('Stack dimensions determined:\n');
     fprintf('X: %d, Y: %d, Z: %d, Ch: %d, Timepoints: %d\n', ...
@@ -76,15 +80,11 @@ function paraMergeTiffFilesToMultiDimStack(inputFolder, outputFilePath, xySpacin
         for cIndex = 1:numChannels
         
             % Find the correct file for the current time point, channel, and z-slice
-            filePattern = sprintf('*_T%04d_Ch%d.tif', tIndex - 1, cIndex-1); % Updated to match zero-padded timepoints
-            matchingFiles = dir(fullfile(inputFolder, filePattern));
-
-            if isempty(matchingFiles)
-                error('Missing file for T=%04d, Ch=%d', tIndex - 1, cIndex-1);
-            end
-
-            % Read and write each slice
-            fullFileName = fullfile(inputFolder, matchingFiles(1).name);
+matchIdx = find([fileMeta.T] == (tIndex - 1) & [fileMeta.Ch] == (cIndex - 1), 1);
+if isempty(matchIdx)
+    error('Missing file for T=%d, Ch=%d', tIndex - 1, cIndex - 1);
+end
+fullFileName = fullfile(inputFolder, fileMeta(matchIdx).name);
             intermediateStack(:, :, :, cIndex) = readtiff_parallel(fullFileName);
         end
 

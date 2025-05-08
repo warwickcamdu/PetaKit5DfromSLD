@@ -1,4 +1,4 @@
-function modularPipeline()
+function modularPipeline(psfFolder, inputFolder)
 % modularPipeline prompts the user for:
 %    1. A folder containing PSF files. Assumes PSF filenames contain the text
 %       'PSF_CHX' (where X is a number) and uses those to build the PSF paths.
@@ -8,14 +8,19 @@ function modularPipeline()
 % deskew-only), with z–axis padding applied during conversion and removed before merging.
 
     %% --- UI: Ask the User for Required Folders ---
-    psfFolder = uigetdir([], 'Select the folder containing your PSF files');
-    if psfFolder == 0
-        error('No PSF folder selected.');
+    % Allow test code to pass paths directly
+    if nargin < 1 || isempty(psfFolder)
+        psfFolder = uigetdir([], 'Select the folder containing your PSF files');
+        if psfFolder == 0
+            error('No PSF folder selected.');
+        end
     end
-    
-    inputFolder = uigetdir([], 'Select the folder containing files to deconvolve (SLD or TIFF)');
-    if inputFolder == 0
-        error('No input folder selected.');
+
+    if nargin < 2 || isempty(inputFolder)
+        inputFolder = uigetdir([], 'Select the folder containing files to deconvolve (SLD or TIFF)');
+        if inputFolder == 0
+            error('No input folder selected.');
+        end
     end
     
     %% --- Get Default Configuration and Update with User Choices ---

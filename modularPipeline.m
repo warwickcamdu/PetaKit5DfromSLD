@@ -64,7 +64,7 @@ function modularPipeline(psfFolder, inputFolder)
     % get size Metadata - assuming same for all PSF channels
     r=bfGetReader(psfArray(1).fullpath);
     psf_metadata = getSizeMetadata(r,0);
-
+    r.close();
     fprintf('Selected PSF files:\n');
     disp(config.PSFFullpaths);
     fprintf('Channel Patterns:\n');
@@ -126,6 +126,7 @@ function modularPipeline(psfFolder, inputFolder)
                 if strcmp(config.processingMode, 'decon+deskew') || strcmp(config.processingMode, 'both')
                     r=bfGetReader(filePaths{1});
                     tif3D_metadata = getSizeMetadata(r,0);
+                    r.close();
                     if (tif3D_metadata.pixelSizeZ == psf_metadata.pixelSizeZ)
                         runDeconDeskewPipeline(seriesResult, config);
                     else
@@ -188,6 +189,7 @@ function processSldFile(sldFileName, config, psf_metadata)
         end
         deleteIntermediateFiles(seriesResult.tifDir, config);
     end
+    r.close();
 end
 
 %% -----------------------------------------------------------------------

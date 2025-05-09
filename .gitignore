@@ -8,7 +8,7 @@
 *.tif
 *.tiff
 #do not ignore test PSFs
-!tests/data/Inputs/PSFs/*.tif
+!tests/data/PSFs/*.tif
 mcc/linux/*
 mcc/linux_with_jvm/*
 mcc/mac/*

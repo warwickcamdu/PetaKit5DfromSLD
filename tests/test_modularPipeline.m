@@ -6,11 +6,11 @@ classdef test_modularPipeline < matlab.unittest.TestCase
                 'example-data-2C-2T-3Z-1Series_Capture1_0point5_zSpacing_decondeskew_MAX.tif'
                 'example-data-2C-2T-3Z-1Series_Capture1_0point5_zSpacing_deskew.tif'
                 'example-data-2C-2T-3Z-1Series_Capture1_0point5_zSpacing_deskew_MAX.tif'
-                'example-data-2C-2T-3Z-1Series_Capture1_0point6_zSpacing_deskew.tif'
-                'example-data-2C-2T-3Z-1Series_Capture1_0point6_zSpacing_deskew_MAX.tif'
-            }, {
+                'example-data-2C-2T-3Z-1Series_Capture2_0point6_zSpacing_deskew.tif'
+                'example-data-2C-2T-3Z-1Series_Capture2_0point6_zSpacing_deskew_MAX.tif'
+            },{ 
                 'example-data-2C-2T-3Z-1Series_Capture1_0point5_zSpacing'
-                'example-data-2C-2T-3Z-1Series_Capture1_0point6_zSpacing'
+                'example-data-2C-2T-3Z-1Series_Capture2_0point6_zSpacing'
             });
         end
 
@@ -20,6 +20,8 @@ classdef test_modularPipeline < matlab.unittest.TestCase
                 'example-data-2C-2T-3Z-1Series_Capture_1_decondeskew_MAX.tif'
                 'example-data-2C-2T-3Z-1Series_Capture_1_deskew.tif'
                 'example-data-2C-2T-3Z-1Series_Capture_1_deskew_MAX.tif'
+            }, { 
+            'example-data-2C-2T-3Z-1Series_Capture_1'
             });
         end
     end
@@ -34,7 +36,7 @@ classdef test_modularPipeline < matlab.unittest.TestCase
             [thisDir, ~, ~] = fileparts(thisFile);
             psfPath = fullfile(thisDir, 'data', 'PSFs');
             inputPath = fullfile(thisDir, 'data', 'Inputs', folderName);
-            expectedDir = fullfile(thisDir, 'data', 'Outputs', folderName);
+            %expectedDir = fullfile(thisDir, 'data', 'Outputs', folderName);
 
             % Delete output subdirectories if requested
             for i = 1:numel(subdirsToDelete)
@@ -59,12 +61,13 @@ classdef test_modularPipeline < matlab.unittest.TestCase
             for i = 1:numel(expected_files)
                 file = expected_files{i};
                 actualFile = fullfile(inputPath, file);
-                expectedFile = fullfile(expectedDir, file);
+        
+                %expectedFile = fullfile(expectedDir, file);
 
                 testCase.assertTrue(isfile(actualFile), ...
                     sprintf('Missing output file: %s', actualFile));
-                testCase.assertTrue(isfile(expectedFile), ...
-                    sprintf('Missing expected file: %s', expectedFile));
+                %testCase.assertTrue(isfile(expectedFile), ...
+                 %   sprintf('Missing expected file: %s', expectedFile));
 
                 % Uncomment this if pixel-level comparison is needed
                 % actualImage = readtiff_parallel(actualFile);

@@ -1,7 +1,7 @@
 classdef test_modularPipeline < matlab.unittest.TestCase
     methods (Test)
         function testPipelineWithSld(testCase)
-            testCase.verifyPipeline('sld', {
+            testCase.verifyPipeline('sld', 'sld+sldy', {
                 'example-data-2C-2T-3Z-1Series_Capture1_0point5_zSpacing_decondeskew.tif'
                 'example-data-2C-2T-3Z-1Series_Capture1_0point5_zSpacing_decondeskew_MAX.tif'
                 'example-data-2C-2T-3Z-1Series_Capture1_0point5_zSpacing_deskew.tif'
@@ -15,26 +15,37 @@ classdef test_modularPipeline < matlab.unittest.TestCase
         end
 
         function testPipelineWithSldy(testCase)
-            testCase.verifyPipeline('sldy', {
+            testCase.verifyPipeline('sldy', 'sld+sldy', {
                 'example-data-2C-2T-3Z-1Series_Capture_1_decondeskew.tif'
                 'example-data-2C-2T-3Z-1Series_Capture_1_decondeskew_MAX.tif'
                 'example-data-2C-2T-3Z-1Series_Capture_1_deskew.tif'
                 'example-data-2C-2T-3Z-1Series_Capture_1_deskew_MAX.tif'
             }, { 
-            'example-data-2C-2T-3Z-1Series_Capture_1'
+                'example-data-2C-2T-3Z-1Series_Capture_1'
+            });
+        end
+
+        function testPipelineWithCzi(testCase)
+            testCase.verifyPipeline('czi', 'czi', {
+                'RBC_tiny_decondeskew.tif'
+                'RBC_tiny_decondeskew_MAX.tif'
+                'RBC_tiny_deskew.tif'
+                'RBC_tiny_deskew_MAX.tif'
+            }, { 
+                'RBC_tiny'
             });
         end
     end
 
     methods (Access = private)
-        function verifyPipeline(testCase, folderName, expected_files, subdirsToDelete)
-            if nargin < 4
+        function verifyPipeline(testCase, folderName, psfFolder, expected_files, subdirsToDelete)
+            if nargin < 5
                 subdirsToDelete = {};
             end
 
             thisFile = mfilename('fullpath');
             [thisDir, ~, ~] = fileparts(thisFile);
-            psfPath = fullfile(thisDir, 'data', 'PSFs');
+            psfPath = fullfile(thisDir, 'data', 'PSFs', psfFolder);
             inputPath = fullfile(thisDir, 'data', 'Inputs', folderName);
             %expectedDir = fullfile(thisDir, 'data', 'Outputs', folderName);
 

@@ -14,6 +14,8 @@ mcc/linux_with_jvm/*
 mcc/mac/*
 mcc/windows/*
 mcc/windows_with_jvm/*
+tests/data/Inputs/czi/*/
+tests/data/Inputs/czi/*.tif
 tests/data/Inputs/sld/*.tif
 tests/data/Inputs/sld/*/
 tests/data/Inputs/sldy/*.tif

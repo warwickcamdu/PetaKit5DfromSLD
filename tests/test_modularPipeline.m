@@ -35,6 +35,7 @@ classdef test_modularPipeline < matlab.unittest.TestCase
                 'RBC_tiny'
             });
         end
+
     end
 
     methods (Access = private)

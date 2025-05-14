@@ -1,0 +1,274 @@
+---
+StartClass:
+  ClassName: CChannelRecord70
+  mByteOrdering: 18761
+  mDataTablePtr: 2845170
+  mDataType: 200
+  mHistogramSummaryPtr: 2846610
+  mHistogramTablePtr: 2845890
+  mManipPtr: 2844658
+  mNumManip: 1
+  mNumPlanes: 3
+  mStructID: 105
+  mStructLen: 768
+  mStructVersion: 512
+EndClass: CChannelRecord70
+StartClass:
+  ClassName: CExposureRecord70
+  mAuxCaptureFlags: 48
+  mAuxZStartPosition: 0
+  mBinning: false
+  mByteOrdering: 18761
+  mCaptureFlags: 0
+  mCaptureSetId: 1746711813
+  mCaptureType: 6
+  mExposureTime: 10
+  mInitialOffset: 0
+  mInterplaneSpacing: 0.5
+  mMoveFieldDownSign: 1
+  mMoveFieldRightSign: 1
+  mNuTSACSampleSize: 0
+  mNumPlanes: 3
+  mScanning: false
+  mStructID: 103
+  mStructLen: 72
+  mStructVersion: 262
+  mTimeLapse: false
+  mTimeLapseInterval: 0
+  mXExtent: 256
+  mXFactor: 1
+  mXOffset: 896
+  mXStartPosition: 8999.8994
+  mYExtent: 256
+  mYFactor: 1
+  mYOffset: 896
+  mYStartPosition: 9300
+  mZStartPosition: 14900
+EndClass: CExposureRecord70
+StartClass:
+  ClassName: CChannelDef70
+  mByteOrdering: 18761
+  mStructID: 109
+  mStructLen: 512
+  mStructVersion: 256
+  mCameraName: 488_#32;MB
+  mName: 488_#32;MB
+EndClass: CChannelDef70
+StartClass:
+  ClassName: CFluorDef70
+  mAltSourcePosition: 2
+  mAuxFilterWheel10Pos: -1
+  mAuxFilterWheel2Pos: -1
+  mAuxFilterWheel3Pos: -1
+  mAuxFilterWheel4Pos: -1
+  mAuxFilterWheel5Pos: -1
+  mAuxFilterWheel6Pos: -1
+  mAuxFilterWheel7Pos: -1
+  mAuxFilterWheel8Pos: -1
+  mAuxFilterWheel9Pos: -1
+  mAuxFilterWheelPos: -1
+  mAuxNDPos: -1
+  mByteOrdering: 18761
+  mCamera: 1
+  mCameraBitDepth: 16
+  mCameraGain: -1
+  mCameraIntensification: -1
+  mCameraParameter1: -1
+  mCameraPort: -1
+  mCameraSpeed: -1
+  mCameraVideoTurretPos: -1
+  mChannelType: 727
+  mDefaultColor: 602
+  mDefaultColorDisplay: 801
+  mEmissionWheelPos: -1
+  mExcitationLambda: 0.48800001
+  mExcitationWheelPos: -1
+  mFilterSet: 0
+  mHue: 0
+  mIlluminationMode: 1300
+  mImagingMode: 6
+  mLCDPos: -1
+  mLambda: 0.509
+  mLambdaOptions: 12
+  mLaserPowerPos: -32768
+  mLightSource: 502
+  mNDPos: 100
+  mNumExposuresAverage: 1
+  mOcularPhotoTurretPos: -1
+  mSaturation: 0
+  mStructID: 101
+  mStructLen: 256
+  mStructVersion: 293
+  mTIRFPos: -32768
+  mTransmittedModePrompt: false
+  mTurretPosition: -1
+  mUV: false
+  mValue: 0
+  mName: 488_#32;MB
+  mRGBFactor: [
+3,1,1,1
+ ]
+EndClass: CFluorDef70
+StartClass:
+  ClassName: CAlignManipRecord70
+  mByteOrdering: 18761
+  mManipID: 301
+  mStructID: 104
+  mStructLen: 256
+  mStructVersion: 256
+  mXOffset: 0
+  mYOffset: 0
+  mZOffset: 0
+EndClass: CAlignManipRecord70
+StartClass:
+  ClassName: CHistogramRecord70
+  mByteOrdering: 18761
+  mChannelIndex: 0
+  mDataBlockSize: 65536
+  mHistogramType: 1
+  mImageIndex: -1
+  mMax: 176
+  mMean: 100
+  mMin: 67
+  mNumBins: 16384
+  mStructID: 123
+  mStructLen: 256
+  mStructVersion: 256
+EndClass: CHistogramRecord70
+StartClass:
+  ClassName: CChannelRecord70
+  mByteOrdering: 18761
+  mDataTablePtr: 2845530
+  mDataType: 200
+  mHistogramSummaryPtr: 2912402
+  mHistogramTablePtr: 2846250
+  mManipPtr: 2844914
+  mNumManip: 1
+  mNumPlanes: 3
+  mStructID: 105
+  mStructLen: 768
+  mStructVersion: 512
+EndClass: CChannelRecord70
+StartClass:
+  ClassName: CExposureRecord70
+  mAuxCaptureFlags: 0
+  mAuxZStartPosition: 0
+  mBinning: false
+  mByteOrdering: 18761
+  mCaptureFlags: 0
+  mCaptureSetId: 0
+  mCaptureType: 6
+  mExposureTime: 10
+  mInitialOffset: 0
+  mInterplaneSpacing: 0.5
+  mMoveFieldDownSign: 1
+  mMoveFieldRightSign: 1
+  mNuTSACSampleSize: 0
+  mNumPlanes: 3
+  mScanning: false
+  mStructID: 103
+  mStructLen: 72
+  mStructVersion: 262
+  mTimeLapse: false
+  mTimeLapseInterval: 0
+  mXExtent: 256
+  mXFactor: 1
+  mXOffset: 896
+  mXStartPosition: 0
+  mYExtent: 256
+  mYFactor: 1
+  mYOffset: 896
+  mYStartPosition: 0
+  mZStartPosition: 0
+EndClass: CExposureRecord70
+StartClass:
+  ClassName: CChannelDef70
+  mByteOrdering: 18761
+  mStructID: 109
+  mStructLen: 512
+  mStructVersion: 256
+  mCameraName: 560_#32;MB
+  mName: 560_#32;MB
+EndClass: CChannelDef70
+StartClass:
+  ClassName: CFluorDef70
+  mAltSourcePosition: 3
+  mAuxFilterWheel10Pos: -1
+  mAuxFilterWheel2Pos: -1
+  mAuxFilterWheel3Pos: -1
+  mAuxFilterWheel4Pos: -1
+  mAuxFilterWheel5Pos: -1
+  mAuxFilterWheel6Pos: -1
+  mAuxFilterWheel7Pos: -1
+  mAuxFilterWheel8Pos: -1
+  mAuxFilterWheel9Pos: -1
+  mAuxFilterWheelPos: -1
+  mAuxNDPos: -1
+  mByteOrdering: 18761
+  mCamera: 0
+  mCameraBitDepth: 16
+  mCameraGain: -1
+  mCameraIntensification: -1
+  mCameraParameter1: -1
+  mCameraPort: -1
+  mCameraSpeed: -1
+  mCameraVideoTurretPos: -1
+  mChannelType: 701
+  mDefaultColor: 601
+  mDefaultColorDisplay: 801
+  mEmissionWheelPos: -1
+  mExcitationLambda: 0.56
+  mExcitationWheelPos: -1
+  mFilterSet: 0
+  mHue: 0
+  mIlluminationMode: 1300
+  mImagingMode: 6
+  mLCDPos: -1
+  mLambda: 0.60500002
+  mLambdaOptions: 12
+  mLaserPowerPos: -32768
+  mLightSource: 502
+  mNDPos: 100
+  mNumExposuresAverage: 1
+  mOcularPhotoTurretPos: -1
+  mSaturation: 0
+  mStructID: 101
+  mStructLen: 256
+  mStructVersion: 293
+  mTIRFPos: -32768
+  mTransmittedModePrompt: false
+  mTurretPosition: -1
+  mUV: false
+  mValue: 0
+  mName: 560_#32;MB
+  mRGBFactor: [
+3,1,1,1
+ ]
+EndClass: CFluorDef70
+StartClass:
+  ClassName: CAlignManipRecord70
+  mByteOrdering: 18761
+  mManipID: 301
+  mStructID: 104
+  mStructLen: 256
+  mStructVersion: 256
+  mXOffset: 0
+  mYOffset: 0
+  mZOffset: 0
+EndClass: CAlignManipRecord70
+StartClass:
+  ClassName: CHistogramRecord70
+  mByteOrdering: 18761
+  mChannelIndex: 1
+  mDataBlockSize: 65536
+  mHistogramType: 1
+  mImageIndex: -1
+  mMax: 168
+  mMean: 100
+  mMin: 65
+  mNumBins: 16384
+  mStructID: 123
+  mStructLen: 256
+  mStructVersion: 256
+EndClass: CHistogramRecord70
+...

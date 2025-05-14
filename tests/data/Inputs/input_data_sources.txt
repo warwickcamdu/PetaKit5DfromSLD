@@ -1,0 +1,7 @@
+sld:
+Collected from Warwick's 3i LLSM
+sldy:
+Collected from Warwick's 3i LLSM
+czi:
+RBC_tiny and PSF from C Evelyn, N Geoghegan, L Whitehead, P Rajasekhar & K Rogers. (2025). Datasets for napari-lattice: Lattice Lightsheet Analysis [Data set]. Zenodo. https://doi.org/10.5281/zenodo.14903188
+

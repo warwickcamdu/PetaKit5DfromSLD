@@ -532,6 +532,6 @@ end
 
 function config = getCziDefaultConfig(config)
     config.xyPixelSize = 0.1449922;
-    config.skewAngle = 32.8;
+    config.skewAngle = 30.0;
     config.flipZstack = false;
 end

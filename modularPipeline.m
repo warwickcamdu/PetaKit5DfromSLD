@@ -127,7 +127,7 @@ function modularPipeline(psfFolder, inputFolder)
                     r=bfGetReader(filePaths{1});
                     tif3D_metadata = getSizeMetadata(r,0);
                     r.close();
-                    if (tif3D_metadata.pixelSizeZ == psf_metadata.pixelSizeZ)
+                    if (abs(tif3D_metadata.pixelSizeZ - psf_metadata.pixelSizeZ)<1e-5)
                         runDeconDeskewPipeline(seriesResult, config);
                     else
                         warning('Skipping series %d Z spacing does not match PSF.', 0);
@@ -177,7 +177,7 @@ function processSldFile(sldFileName, config, psf_metadata)
         
         if strcmp(config.processingMode, 'decon+deskew') || strcmp(config.processingMode, 'both')
             size_metadata = getSizeMetadata(r,S);    
-            if (size_metadata.pixelSizeZ == psf_metadata.pixelSizeZ)
+            if (abs(size_metadata.pixelSizeZ - psf_metadata.pixelSizeZ)<1e-5)
                 runDeconDeskewPipeline(seriesResult, config);
             else
                 warning('Skipping series %d Z spacing does not match PSF.', S);

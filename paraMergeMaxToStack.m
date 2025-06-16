@@ -1,4 +1,4 @@
-function finalStack=  paraMergeMaxToStack(inputFolder, outputFilePath, xySpacing, frameInterval)
+function finalStack=  paraMergeMaxToStack(inputFolder, outputFilePath, xySpacing, frameInterval, skewDirection)
     % addpath('E:\Scott\Software\Fiji.app\scripts')
     % ImageJ;
     % Ensure the output file path is a string
@@ -26,6 +26,9 @@ function finalStack=  paraMergeMaxToStack(inputFolder, outputFilePath, xySpacing
         if k == 1
             fullFileName = fullfile(inputFolder, baseFileName);
             image = readtiff_parallel(fullFileName);
+            if (nargin > 4) && (skewDirection == 'Y')
+                image = rot90(image,1);
+            end
             imshape = size(image);
             stackSizeX = imshape(2);
             stackSizeY = imshape(1);
@@ -78,7 +81,12 @@ function finalStack=  paraMergeMaxToStack(inputFolder, outputFilePath, xySpacing
         % image = readtiff_parallel(fullFileName);
         
         % Populate the final stack
-        finalStack(:, :, channel + 1, timePoint + 1) = readtiff_parallel(fullFileName);
+        if (nargin > 4) && (skewDirection == 'Y')
+            plane = readtiff_parallel(fullFileName);
+            finalStack(:, :, channel + 1, timePoint + 1) = rot90(plane,1);
+        else
+            finalStack(:, :, channel + 1, timePoint + 1) = readtiff_parallel(fullFileName);
+        end
     end
     size(finalStack);
     

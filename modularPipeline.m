@@ -261,7 +261,7 @@ function seriesResult = convertSeriesToTif(r, seriesIndex, sldFileName, config, 
             outputArray = uint16(array(:, :, 1:size_metadata.stackSizeZ));
             outputArray = applyZPadding(outputArray, config);
             if isfield(config,'skewDirection') && (config.skewDirection == 'Y')
-                outputArray = rot90(outputArray,-1);
+                outputArray = rot90(outputArray,1);
             end
             
             strS = num2str(seriesIndex);
@@ -552,6 +552,5 @@ end
 function config = getCziDefaultConfig(config)
     config.xyPixelSize = 0.1449922;
     config.skewAngle = 30.0;
-    config.flipZstack = false;
     config.skewDirection = 'Y';
 end

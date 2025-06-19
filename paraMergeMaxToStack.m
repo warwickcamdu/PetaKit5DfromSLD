@@ -27,7 +27,7 @@ function finalStack=  paraMergeMaxToStack(inputFolder, outputFilePath, xySpacing
             fullFileName = fullfile(inputFolder, baseFileName);
             image = readtiff_parallel(fullFileName);
             if (nargin > 4) && (skewDirection == 'Y')
-                image = rot90(image,1);
+                image = rot90(image,-1);
             end
             imshape = size(image);
             stackSizeX = imshape(2);
@@ -83,7 +83,7 @@ function finalStack=  paraMergeMaxToStack(inputFolder, outputFilePath, xySpacing
         % Populate the final stack
         if (nargin > 4) && (skewDirection == 'Y')
             plane = readtiff_parallel(fullFileName);
-            finalStack(:, :, channel + 1, timePoint + 1) = rot90(plane,1);
+            finalStack(:, :, channel + 1, timePoint + 1) = rot90(plane,-1);
         else
             finalStack(:, :, channel + 1, timePoint + 1) = readtiff_parallel(fullFileName);
         end

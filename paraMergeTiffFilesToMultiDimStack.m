@@ -22,7 +22,7 @@ function paraMergeTiffFilesToMultiDimStack(inputFolder, outputFilePath, xySpacin
     fullFileName = fullfile(inputFolder, baseFileName);
     image = readtiff_parallel(fullFileName);
     if (nargin > 5) && (skewDirection == 'Y')
-        image = rot90(image,1);
+        image = rot90(image,-1);
     end
     [stackSizeY, stackSizeX, stackSizeZ] = size(image);
 
@@ -91,7 +91,7 @@ end
 fullFileName = fullfile(inputFolder, fileMeta(matchIdx).name);
     if (nargin > 5) && (skewDirection == 'Y')
         plane = readtiff_parallel(fullFileName);
-        intermediateStack(:, :, :, cIndex) = rot90(plane,1);
+        intermediateStack(:, :, :, cIndex) = rot90(plane,-1);
     else
             intermediateStack(:, :, :, cIndex) = readtiff_parallel(fullFileName);
     end

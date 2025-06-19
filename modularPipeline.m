@@ -260,6 +260,9 @@ function seriesResult = convertSeriesToTif(r, seriesIndex, sldFileName, config, 
             
             outputArray = uint16(array(:, :, 1:size_metadata.stackSizeZ));
             outputArray = applyZPadding(outputArray, config);
+            if isfield(config,'skewDirection') && (config.skewDirection == 'Y')
+                outputArray = rot90(outputArray,1);
+            end
             
             strS = num2str(seriesIndex);
             strT = pad(num2str(T), 4, 'left', '0');
@@ -394,11 +397,19 @@ function runDeconDeskewPipeline(seriesResult, config)
     
     % Merge the deconvolved+deskewed images.
     outputTiffFile = fullfile(config.inputFolder, [seriesResult.currentSeriesFolder, '_decondeskew.tif']);
-    paraMergeTiffFilesToMultiDimStack(deconDSDir, outputTiffFile, seriesResult.pixelSizeX, seriesResult.deskewedZSpacing, seriesResult.frameInterval);
+    if isfield(config,'skewDirection')
+        paraMergeTiffFilesToMultiDimStack(deconDSDir, outputTiffFile, seriesResult.pixelSizeX, seriesResult.deskewedZSpacing, seriesResult.frameInterval, config.skewDirection);
+    else
+        paraMergeTiffFilesToMultiDimStack(deconDSDir, outputTiffFile, seriesResult.pixelSizeX, seriesResult.deskewedZSpacing, seriesResult.frameInterval);
+    end
     
     outputTiffFileMax = fullfile(config.inputFolder, [seriesResult.currentSeriesFolder, '_decondeskew_MAX.tif']);
     inputToMergeMax = fullfile(deconDSDir, 'MIPs');
-    paraMergeMaxToStack(inputToMergeMax, outputTiffFileMax, seriesResult.pixelSizeX, seriesResult.frameInterval);
+    if isfield(config,'skewDirection')
+        paraMergeMaxToStack(inputToMergeMax, outputTiffFileMax, seriesResult.pixelSizeX, seriesResult.frameInterval, config.skewDirection);
+    else
+        paraMergeMaxToStack(inputToMergeMax, outputTiffFileMax, seriesResult.pixelSizeX, seriesResult.frameInterval);
+    end
 end
 
 %% -----------------------------------------------------------------------
@@ -419,11 +430,19 @@ function runDeskewOnlyPipeline(seriesResult, config)
     
     % Merge the deskew-only images.
     outputTiffFileDeskew = fullfile(config.inputFolder, [seriesResult.currentSeriesFolder, '_deskew.tif']);
-    paraMergeTiffFilesToMultiDimStack(deskewDSDir, outputTiffFileDeskew, seriesResult.pixelSizeX, seriesResult.deskewedZSpacing, seriesResult.frameInterval);
+    if isfield(config,'skewDirection')
+        paraMergeTiffFilesToMultiDimStack(deskewDSDir, outputTiffFileDeskew, seriesResult.pixelSizeX, seriesResult.deskewedZSpacing, seriesResult.frameInterval, config.skewDirection);
+    else
+        paraMergeTiffFilesToMultiDimStack(deskewDSDir, outputTiffFileDeskew, seriesResult.pixelSizeX, seriesResult.deskewedZSpacing, seriesResult.frameInterval);
+    end
     
     outputTiffFileDeskewMax = fullfile(config.inputFolder, [seriesResult.currentSeriesFolder, '_deskew_MAX.tif']);
     inputToMergeDeskewMax = fullfile(deskewDSDir, 'MIPs');
-    paraMergeMaxToStack(inputToMergeDeskewMax, outputTiffFileDeskewMax, seriesResult.pixelSizeX, seriesResult.frameInterval);
+    if isfield(config,'skewDirection')
+        paraMergeMaxToStack(inputToMergeDeskewMax, outputTiffFileDeskewMax, seriesResult.pixelSizeX, seriesResult.frameInterval, config.skewDirection);
+    else
+        paraMergeMaxToStack(inputToMergeDeskewMax, outputTiffFileDeskewMax, seriesResult.pixelSizeX, seriesResult.frameInterval);
+    end
 end
 
 %% -----------------------------------------------------------------------
@@ -533,5 +552,5 @@ end
 function config = getCziDefaultConfig(config)
     config.xyPixelSize = 0.1449922;
     config.skewAngle = 30.0;
-    config.flipZstack = false;
+    config.skewDirection = 'Y';
 end

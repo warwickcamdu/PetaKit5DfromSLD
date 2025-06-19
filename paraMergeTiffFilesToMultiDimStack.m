@@ -1,4 +1,5 @@
-function paraMergeTiffFilesToMultiDimStack(inputFolder, outputFilePath, xySpacing, zSpacing, frameInterval)
+function paraMergeTiffFilesToMultiDimStack(inputFolder, outputFilePath, xySpacing, zSpacing, frameInterval, skewDirection)
+%skewDirection is optional argument
     % Ensure the output file path is a string
     if ~ischar(outputFilePath)
         outputFilePath = char(outputFilePath);
@@ -20,6 +21,9 @@ function paraMergeTiffFilesToMultiDimStack(inputFolder, outputFilePath, xySpacin
     baseFileName = tiffFiles(1).name;
     fullFileName = fullfile(inputFolder, baseFileName);
     image = readtiff_parallel(fullFileName);
+    if (nargin > 5) && (skewDirection == 'Y')
+        image = rot90(image,-1);
+    end
     [stackSizeY, stackSizeX, stackSizeZ] = size(image);
 
 fileMeta = struct('name', {}, 'T', {}, 'Ch', {});
@@ -85,7 +89,12 @@ if isempty(matchIdx)
     error('Missing file for T=%d, Ch=%d', tIndex - 1, cIndex - 1);
 end
 fullFileName = fullfile(inputFolder, fileMeta(matchIdx).name);
+    if (nargin > 5) && (skewDirection == 'Y')
+        plane = readtiff_parallel(fullFileName);
+        intermediateStack(:, :, :, cIndex) = rot90(plane,-1);
+    else
             intermediateStack(:, :, :, cIndex) = readtiff_parallel(fullFileName);
+    end
         end
 
         for zIndex = 1:stackSizeZ
